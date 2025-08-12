@@ -1,0 +1,189 @@
+import React, { useEffect, useState } from 'react';
+import { listTeams, createTeam } from '../api/teams';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+
+export default function Teams(){
+  const { user } = useAuth();
+
+  // 목록 상태
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 필터 상태 (기본 비노출)
+  const [showFilters, setShowFilters] = useState(false);
+  const [q, setQ] = useState('');
+  const [type, setType] = useState('');
+  const [status, setStatus] = useState('');
+
+  // 생성 폼 상태 (기본 비노출)
+  const [showCreate, setShowCreate] = useState(false);
+  const [name, setName] = useState('');
+  const [cType, setCType] = useState('STUDY');
+  const [description, setDescription] = useState('');
+  const [goal, setGoal] = useState('');
+  const [startAt, setStartAt] = useState('');
+  const [endAt, setEndAt] = useState('');
+
+  // 권한
+  const canCreate = ['ADMIN', 'EXECUTIVE', 'LEADER'].includes(user?.role);
+
+  async function fetchTeams(params = {}){
+    setLoading(true);
+    try{
+      const { data } = await listTeams({
+        q: (params.q ?? q) || undefined,
+        type: (params.type ?? type) || undefined,
+        status: (params.status ?? status) || undefined,
+        include: 'leader'  // 리더 정보를 포함하도록 요청
+      });
+      setTeams(data.items || []);
+    } finally{
+      setLoading(false);
+    }
+  }
+
+  useEffect(()=>{ fetchTeams(); /* eslint-disable-next-line */ },[]);
+
+  async function onSearch(e){
+    e.preventDefault();
+    await fetchTeams({ q, type, status });
+  }
+
+  async function onCreate(e){
+    e.preventDefault();
+    if (!user?.clubId){
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'먼저 프로필에서 동아리를 선택하세요.' } }));
+      return;
+    }
+    try{
+      await createTeam({
+        name,
+        type: cType,
+        description,
+        goal,
+        clubId: user.clubId,
+        startAt: startAt ? new Date(startAt).toISOString() : undefined,
+        endAt: endAt ? new Date(endAt).toISOString() : undefined
+      });
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'팀이 생성되었습니다.' } }));
+      // 목록 새로고침
+      await fetchTeams();
+      // 폼 리셋 + 접기
+      setName(''); setCType('STUDY'); setDescription(''); setGoal(''); setStartAt(''); setEndAt('');
+      setShowCreate(false);
+    } catch (e){
+      const msg = e?.response?.data?.message || '팀 생성에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg } }));
+    }
+  }
+
+  return (
+    <div className="container">
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <h1 style={{ margin:0 }}>팀</h1>
+        <div style={{ display:'flex', gap:8 }}>
+          <button className="btn" onClick={()=> setShowFilters(v=>!v)}>
+            {showFilters ? '필터 닫기' : '필터 열기'}
+          </button>
+          {canCreate && (
+            <button className="btn" onClick={()=> setShowCreate(v=>!v)}>
+              {showCreate ? '생성 폼 닫기' : '팀 생성'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* 필터: 버튼 클릭 시에만 노출 */}
+      {showFilters && (
+        <form onSubmit={onSearch} className="card" style={{ display:'grid', gap:8, marginBottom:12 }}>
+          <div className="grid cols-3">
+            <label>검색<br/><input className="input" value={q} onChange={e=>setQ(e.target.value)} placeholder="팀명/설명" /></label>
+            <label>유형<br/>
+              <select className="input" value={type} onChange={e=>setType(e.target.value)}>
+                <option value="">전체</option>
+                <option value="STUDY">STUDY</option>
+                <option value="PROJECT">PROJECT</option>
+              </select>
+            </label>
+            <label>상태<br/>
+              <select className="input" value={status} onChange={e=>setStatus(e.target.value)}>
+                <option value="">전체</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="ARCHIVED">ARCHIVED</option>
+              </select>
+            </label>
+          </div>
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <button className="btn" type="button" onClick={()=>{ setQ(''); setType(''); setStatus(''); fetchTeams({ q:'', type:'', status:'' }); }}>초기화</button>
+            <button className="btn primary">검색</button>
+          </div>
+        </form>
+      )}
+
+      {/* 팀 생성: 버튼 클릭 시에만 노출 (권한 필요) */}
+      {showCreate && canCreate && (
+        <form onSubmit={onCreate} className="card" style={{ display:'grid', gap:8, marginBottom:12 }}>
+          <div className="grid cols-2">
+            <label>팀명<br/><input className="input" value={name} onChange={e=>setName(e.target.value)} required /></label>
+            <label>유형<br/>
+              <select className="input" value={cType} onChange={e=>setCType(e.target.value)}>
+                <option value="STUDY">STUDY</option>
+                <option value="PROJECT">PROJECT</option>
+              </select>
+            </label>
+          </div>
+          <label>목표<br/><input className="input" value={goal} onChange={e=>setGoal(e.target.value)} /></label>
+          <label>설명<br/><textarea className="input" value={description} onChange={e=>setDescription(e.target.value)} /></label>
+          <div className="grid cols-2">
+            <label>시작일<br/><input className="input" type="date" value={startAt} onChange={e=>setStartAt(e.target.value)} /></label>
+            <label>종료일<br/><input className="input" type="date" value={endAt} onChange={e=>setEndAt(e.target.value)} /></label>
+          </div>
+          <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+            <button className="btn" type="button" onClick={()=> setShowCreate(false)}>취소</button>
+            <button className="btn primary" type="submit">생성</button>
+          </div>
+        </form>
+      )}
+
+      {/* 목록 */}
+      <div className="card">
+        {loading ? (
+          <div className="skeleton" style={{ height:160 }} />
+        ) : teams.length === 0 ? (
+          <div>팀이 없습니다.</div>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>유형</th>
+                <th>상태</th>
+                <th>리더</th>
+                <th>기간</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {teams.map(t => (
+                <tr key={t._id}>
+                  <td>{t.name}</td>
+                  <td>{t.type}</td>
+                  <td>{t.status}</td>
+                  <td>{t.leader?.username || '-'}</td>
+                  <td>
+                    {(t.startAt ? new Date(t.startAt).toLocaleDateString() : '-') + ' ~ ' +
+                     (t.endAt ? new Date(t.endAt).toLocaleDateString() : '-')}
+                  </td>
+                  <td style={{ textAlign:'right' }}>
+                    <Link className="btn" to={`/teams/${t._id}`}>자세히</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}

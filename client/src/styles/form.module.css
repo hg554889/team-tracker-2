@@ -1,0 +1,3 @@
+.form { display:grid; gap:12px; }
+.row { display:grid; gap:6px; }
+.label { color:#a0a3ad; font-size:14px; }
