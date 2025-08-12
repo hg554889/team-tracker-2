@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { Report } from '../models/Report.js';
 import { Team } from '../models/Team.js';
+import { validate } from '../middleware/validate.js';
+import { reportCreateSchema, commentCreateSchema } from '../validators/reports.js';
 import { requireAuth } from '../middleware/auth.js';
 import { Roles } from '../utils/roles.js';
 
@@ -189,27 +191,67 @@ router.put('/:id', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// 댓글 추가 (팀 멤버 또는 ADMIN)
-router.post('/:id/comments', requireAuth, async (req, res, next) => {
+// ✅ 코멘트 작성 (안정화 버전)
+router.post('/:id/comments', requireAuth, validate(commentCreateSchema), async (req, res, next) => {
   try {
-    const r = await Report.findById(req.params.id);
-    if (!r) return res.status(404).json({ error: 'NotFound' });
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user.id;
 
-    const team = await Team.findById(r.team);
-    const { id: userId, role } = req.user;
-    const isMember = (team?.members || []).some(m => m?.user?.toString() === userId);
-    if (role !== Roles.ADMIN && !isMember) return res.status(403).json({ error: 'Forbidden' });
+    const report = await Report.findById(id).populate({ path: 'team', select: 'members' });
+    if (!report) return res.status(404).json({ error: 'ReportNotFound' });
 
-    const text = (req.body.text || '').trim();
-    if (!text) return res.status(400).json({ error: 'ValidationError', message: 'text required' });
+    let isMember = false;
+    if (req.user.role === Roles.ADMIN) {
+      isMember = true;
+    } else if (report.team && Array.isArray(report.team.members)) {
+      isMember = report.team.members.some((m) => String(m.user) === String(userId));
+    } else {
+      const team = await Team.findById(report.team);
+      isMember = (team?.members || []).some((m) => String(m.user) === String(userId));
+    }
+    if (!isMember) return res.status(403).json({ error: 'Forbidden' });
 
-    r.comments.push({ author: userId, text });
-    await r.save();
+    // author 필드 사용
+    report.comments.push({ author: userId, text, createdAt: new Date() });
+    await report.save();
 
-    const last = r.comments[r.comments.length - 1];
-    await last.populate('author', 'username');
-    res.status(201).json(last);
-  } catch (e) { next(e); }
+    // populate 수정
+    const populated = await Report.findById(report._id)
+      .select('comments')
+      .populate('comments.author', 'username');
+    const created = populated.comments[populated.comments.length - 1];
+
+    res.status(201).json(created);
+  } catch (e) {
+    console.error('[comments.post] ', e);
+    next(e);
+  }
+});
+
+// ✅ 코멘트 목록 (안정화)
+router.get('/:id/comments', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const report = await Report.findById(id)
+      .select('comments team')
+      .populate('comments.author', 'username')  // user -> author
+      .populate({ path: 'team', select: 'members' });
+
+    if (!report) return res.status(404).json({ error: 'ReportNotFound' });
+
+    // ADMIN or 팀 멤버만 열람 허용 (정책에 맞게 유지)
+    if (req.user.role !== Roles.ADMIN) {
+      const isMember = (report.team?.members || [])
+        .some((m) => String(m.user) === String(req.user.id));
+      if (!isMember) return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    res.json(report.comments || []);
+  } catch (e) {
+    console.error('[comments.get] ', e);
+    next(e);
+  }
 });
 
 export default router;

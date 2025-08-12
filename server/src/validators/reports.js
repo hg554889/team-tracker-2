@@ -16,3 +16,11 @@ export const reportCreateSchema = z.object({
     })).optional()
   })
 });
+
+// ✅ 코멘트 검증 추가
+export const commentCreateSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    text: z.string().min(1).max(2000)
+  })
+});

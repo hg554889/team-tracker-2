@@ -16,7 +16,8 @@ const ReportSchema = new Schema({
   attachments: [{
     name: String, url: String, size: Number, type: String
   }],
-  comments: [CommentSchema]
+  // ✅ 코멘트 필드 추가
+  comments: { type: [CommentSchema], default: [] }
 }, { timestamps: true });
 
 ReportSchema.index({ team: 1, weekOf: 1 }, { unique: true });
