@@ -60,14 +60,14 @@ export default function ReportDetail(){
         <h1>보고서 상세</h1>
         <div style={{ display:'flex', gap:8 }}>
           <button className="btn" onClick={()=> nav(-1)}>뒤로</button>
-          <Link className="btn" to={`/teams/${report.team}`}>팀으로 이동</Link>
+          <Link className="btn" to={`/teams/${report.team?._id}`}>팀으로 이동</Link>
           {canEdit && !edit && <button className="btn" onClick={()=> setEdit(true)}>수정</button>}
           {canEdit && edit && (<><button className="btn" onClick={()=> setEdit(false)}>취소</button><button className="btn primary" onClick={save}>저장</button></>)}
         </div>
       </div>
 
       <div className="card" style={{ display:'grid', gap:12 }}>
-        <div><b>팀</b><br/>{report.team}</div>
+        <div><b>팀</b><br/>{report.team?.name || '알 수 없는 팀'}</div>
         <div><b>주차</b><br/>{new Date(report.weekOf).toLocaleString()}</div>
         {!edit ? (
           <>

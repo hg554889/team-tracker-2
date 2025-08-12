@@ -154,10 +154,10 @@ router.get('/', requireAuth, async (req, res, next) => {
 // 단건 조회 (댓글 작성자 이름 포함)
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    const r = await Report.findById(req.params.id).populate('comments.author', 'username');
+    const r = await Report.findById(req.params.id).populate('comments.author', 'username').populate('team', 'name');
     if (!r) return res.status(404).json({ error: 'NotFound' });
 
-    const team = await Team.findById(r.team);
+    const team = await Team.findById(r.team._id);
     const { id: userId, role } = req.user;
     const isMember = (team?.members || []).some(m => m?.user?.toString() === userId);
     if (role !== Roles.ADMIN && !isMember) return res.status(403).json({ error: 'Forbidden' });
