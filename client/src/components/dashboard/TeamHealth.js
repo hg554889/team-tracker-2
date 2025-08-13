@@ -13,22 +13,20 @@ function Spark({ value = 0 }){
   );
 }
 
-export default function TeamHealth({ data = [] }){
+export default function TeamHealth({ data, loading }){
+  if (loading) return <div className="card skeleton" style={{ height:240 }} />;
+  
   return (
     <div className="card">
-      <h3 style={{ marginTop:0 }}>팀 건강도 (평균 완료율)</h3>
-      {!data.length ? (
-        <div>집계된 팀이 없습니다.</div>
-      ) : (
-        <div style={{ display:'grid', gap:12 }}>
-          {data.map((t,i)=> (
-            <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 2fr', alignItems:'center', gap:12 }}>
-              <div>팀 #{String(t._id).slice(-4)}</div>
-              <Spark value={t.avgProgress} />
-            </div>
-          ))}
-        </div>
-      )}
+      <h3>팀 건강도</h3>
+      <div style={{ marginTop:12 }}>
+        {data.map(row => (
+          <div key={row._id} style={{ display:'flex', marginBottom:8 }}>
+            <div style={{ flex:1 }}>{row.team}</div> {/* team._id 대신 team 사용 */}
+            <div>{row.avgProgress}%</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

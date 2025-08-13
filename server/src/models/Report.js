@@ -13,9 +13,6 @@ const ReportSchema = new Schema({
   goals: { type: String, default: '' },
   issues: { type: String, default: '' },
   dueAt: { type: Date },
-  attachments: [{
-    name: String, url: String, size: Number, type: String
-  }],
   // ✅ 코멘트 필드 추가
   comments: { type: [CommentSchema], default: [] }
 }, { timestamps: true });

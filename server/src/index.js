@@ -15,7 +15,6 @@ import teamRoutes from './routes/teams.js';
 import reportRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
 import clubRoutes from './routes/clubs.js';
-import uploadRoutes from './routes/uploads.js';
 import inviteRoutes from './routes/invites.js';
 
 const app = express();
@@ -44,7 +43,6 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
-app.use('/api/uploads', uploadRoutes);
 app.use('/api/invites', inviteRoutes);
 
 // Protected (최신 역할 동기화)

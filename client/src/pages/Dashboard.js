@@ -57,7 +57,7 @@ export default function Dashboard(){
     if (Array.isArray(summary?.myTeamsProgress)) {
       const rows = summary.myTeamsProgress.map(t => ({
         _id: t.teamId,
-        team: t.teamName,
+        team: t.teamName,  // teamName 사용
         avgProgress: Math.round(
           (t.history || []).reduce((a,c)=> a + (Number(c)||0), 0) / Math.max(1,(t.history||[]).length)
         )

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { listTeams } from '../api/teams';
 import { createOrUpdateReport } from '../api/reports';
 import { useLocation, useNavigate } from 'react-router-dom';
-import client from '../api/client';
 
 export default function ReportForm(){
   const [teams,setTeams]=useState([]);
@@ -12,8 +11,6 @@ export default function ReportForm(){
   const [goals,setGoals]=useState('');
   const [issues,setIssues]=useState('');
   const [dueAt,setDueAt]=useState('');
-  const [files,setFiles]=useState([]);
-  const [uploaded,setUploaded]=useState([]);
   const [done,setDone]=useState(false);
   const loc = useLocation();
   const nav = useNavigate();
@@ -21,26 +18,14 @@ export default function ReportForm(){
   useEffect(()=>{ (async()=>{
     const { data } = await listTeams({ scope: 'mine' });
     setTeams(data.items);
-    const preset = loc.state?.teamId; if (preset) setTeamId(preset);
+    const preset = loc.state?.teamId; 
+    if (preset) setTeamId(preset);
     if (!weekOf) setWeekOf(new Date().toISOString().slice(0,10));
   })(); },[loc.state]); // eslint-disable-line
-
-  async function uploadAll(){
-    const results = [];
-    for (const f of files){
-      const form = new FormData();
-      form.append('file', f);
-      const { data } = await client.post('/uploads', form, { headers: { 'Content-Type':'multipart/form-data' } });
-      results.push(data);
-    }
-    setUploaded(results);
-    return results;
-  }
 
   async function submit(e){
     e.preventDefault();
     try{
-      const atts = await uploadAll();
       const payload = {
         teamId,
         weekOf: new Date(weekOf).toISOString(),
@@ -48,7 +33,6 @@ export default function ReportForm(){
         goals,
         issues,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
-        attachments: atts
       };
       await createOrUpdateReport(payload);
       setDone(true);
@@ -78,14 +62,6 @@ export default function ReportForm(){
         <label>목표<br/><textarea className="input" value={goals} onChange={e=>setGoals(e.target.value)} /></label>
         <label>이슈<br/><textarea className="input" value={issues} onChange={e=>setIssues(e.target.value)} /></label>
         <label>마감일<br/><input className="input" type="datetime-local" value={dueAt} onChange={e=>setDueAt(e.target.value)} /></label>
-        <label>첨부파일<br/>
-          <input className="input" type="file" multiple onChange={e=>setFiles(Array.from(e.target.files||[]))} />
-          {!!uploaded.length && (
-            <ul style={{ marginTop:8 }}>
-              {uploaded.map((f,i)=> <li key={i}><a href={f.url} target="_blank" rel="noreferrer">{f.name}</a></li>)}
-            </ul>
-          )}
-        </label>
         <button className="btn primary">저장</button>
       </form>
     </div>
