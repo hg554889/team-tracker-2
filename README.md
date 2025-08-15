@@ -3,19 +3,20 @@
 협업 팀 관리와 보고서 작성/열람을 지원하는 웹 애플리케이션입니다.  
 관리자(Admin)와 리더(Leader) 역할 기반의 권한 제어를 통해 효율적인 팀 운영과 프로젝트 진행 상황 공유를 할 수 있습니다.
 
----
+
 
 ## 🚀 주요 기능
 
 ### 사용자 & 권한
 - 회원가입 / 로그인 / 로그아웃
 - **Admin**: 모든 동아리(팀)와 모든 사용자 정보 접근 가능
+- **Executive** : 소속된 동아리(팀)의 사용자 정보 접근 가능
 - **Leader**: 소속된 팀의 정보 수정, 멤버 관리, 팀 보고서 작성 가능
 - **Member**: 보고서 작성, 팀 정보 열람 가능
 
 ### 팀 관리
-- 팀 생성 (Leader/Admin)
-- 팀 정보 조회 / 수정 (수정은 Leader/Admin만 가능, 버튼 클릭 후 편집 모드 진입)
+- 팀 생성 (Leader/Executive/Admin)
+- 팀 정보 조회 / 수정 (수정은 Leader/Executive/Admin만 가능, 버튼 클릭 후 편집 모드 진입)
 - 멤버 초대 링크 생성 및 가입
 - 멤버 권한 변경 (Leader ↔ Member)
 - 멤버 제거
@@ -35,7 +36,7 @@
 - 로그인 후 권한별 맞춤 메인 화면 제공
 - 진행 중인 프로젝트 / 최근 보고서 / 주요 알림 표시
 
----
+
 
 ## 🛠 기술 스택
 
@@ -53,7 +54,7 @@
 - Joi 입력값 검증
 - Multer 파일 업로드
 
----
+
 
 ## 📂 폴더 구조
 
@@ -87,39 +88,40 @@ bash
 복사
 편집
 
-- git clone https://github.com/your-username/team-tracker-ver2.git
-cd team-tracker-ver2
+- git clone https://github.com/hg554889/team-tracker-2.git
+- cd team-tracker-ver2
 
 ## 2. 백엔드 설치 & 실행
-- bash
-복사
-편집
+``` bash
+# create new Terminal
 cd server
 npm install
 npm run dev
+```
 
 ## 3. 프론트엔드 설치 & 실행
-- bash
-복사
-편집
-cd ../client
+``` bash
+# create new Terminal
+cd client
 npm install
 npm start
+```
 
 ## 4. 환경 변수 설정
 server/.env && client/.env
 
 - hg554889@gmail.com 으로 요청
+- .env.example 참고
 
 ## 📌 사용 예시
-회원가입 및 로그인
+1. 회원가입 및 로그인
 
-(미가입 상태 시) 동아리 선택
+    - (미가입 상태 시) 동아리 선택
 
-팀 생성 (Leader/Admin)
+2. 팀 생성 (Leader/Admin)
 
-팀 멤버 초대 및 관리
+3. 팀 멤버 초대 및 관리
 
-보고서 작성 후 팀 페이지에서 진행률 추이 확인
+4. 보고서 작성 후 팀 페이지에서 진행률 추이 확인
 
-Admin은 전체 동아리와 모든 보고서를 관리 가능
+    - Admin은 전체 동아리와 모든 보고서를 관리 가능
