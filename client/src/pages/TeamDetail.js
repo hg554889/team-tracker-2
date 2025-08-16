@@ -4,6 +4,7 @@ import { getTeam, updateTeam, addMember, removeMember } from '../api/teams';
 import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
 import { getReportsByTeam } from '../api/reports';
+import TeamInsights from '../components/TeamInsights';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
@@ -108,8 +109,9 @@ export default function TeamDetail() {
       .slice()
       .sort((a, b) => new Date(a.weekOf) - new Date(b.weekOf))
       .map((r) => ({
-        week: new Date(r.weekOf).toLocaleDateString(),
+        week: new Date(r.weekOf).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
         progress: r.progress,
+        goals: r.goals.length > 20 ? r.goals.substring(0, 20) + '...' : r.goals
       }));
   }, [reports]);
 
@@ -172,78 +174,211 @@ export default function TeamDetail() {
 
   return (
     <div className="container">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1>{team.name}</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <h1>{team.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+            <span style={{ 
+              padding: '4px 8px', 
+              backgroundColor: '#f0f0f0', 
+              borderRadius: '12px', 
+              fontSize: '12px',
+              color: '#666'
+            }}>
+              {team.type}
+            </span>
+            <span style={{ 
+              padding: '4px 8px', 
+              backgroundColor: team.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2', 
+              color: team.status === 'ACTIVE' ? '#166534' : '#dc2626',
+              borderRadius: '12px', 
+              fontSize: '12px',
+              fontWeight: '500'
+            }}>
+              {team.status === 'ACTIVE' ? '활성' : '비활성'}
+            </span>
+            <span style={{ fontSize: '14px', color: '#666' }}>
+              멤버 {memberList.length}명
+            </span>
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {isMember && (
             <button
               className="btn"
               onClick={() => nav('/reports/new', { state: { teamId: team._id, teamName: team.name } })}
             >
-              보고서 작성
+              📝 보고서 작성
             </button>
           )}
-          {isLeader && <button className="btn" onClick={inviteLink}>초대 링크</button>}
+          {isLeader && <button className="btn" onClick={inviteLink}>👥 초대 링크</button>}
         </div>
       </div>
 
+      {/* AI 인사이트 - 상단에 표시 */}
+      {(isMember || isLeader || user?.role === 'ADMIN') && (
+        <TeamInsights teamId={team._id} teamName={team.name} />
+      )}
+
       {/* 탭 */}
       <div className="card" style={{ display: 'flex', gap: 8, padding: '8px 12px', marginBottom: 16 }}>
-        {['overview', 'members', 'reports'].map((t) => (
-          <button key={t} className={`btn ${tab === t ? 'primary' : ''}`} onClick={() => setTab(t)}>
-            {t === 'overview' ? '개요' : t === 'members' ? '멤버' : '보고서'}
+        {['overview', 'progress', 'members', 'reports'].map((t) => (
+          <button 
+            key={t} 
+            className={`btn ${tab === t ? 'primary' : ''}`} 
+            onClick={() => setTab(t)}
+            style={{ fontSize: '14px' }}
+          >
+            {t === 'overview' ? '📋 개요' : 
+             t === 'progress' ? '📈 진행률' :
+             t === 'members' ? '👥 멤버' : '📊 보고서'}
           </button>
         ))}
       </div>
 
-      {/* 개요 */}
+      {/* 개요 탭 */}
       {tab === 'overview' && (
         <Section
           title="팀 정보"
           right={
             canEdit && !editMode ? (
-              <button className="btn" onClick={() => setEditMode(true)}>수정</button>
+              <button className="btn" onClick={() => setEditMode(true)}>✏️ 수정</button>
             ) : null
           }
         >
           {!editMode ? (
-            <div>
-              <p><strong>팀명:</strong> {team.name}</p>
-              <p><strong>유형:</strong> {team.type}</p>
-              <p><strong>목표:</strong> {team.goal}</p>
-              <p><strong>설명:</strong> {team.description}</p>
-              <p><strong>상태:</strong> {team.status}</p>
-              <p><strong>시작일:</strong> {team.startAt ? new Date(team.startAt).toLocaleDateString() : '-'}</p>
-              <p><strong>종료일:</strong> {team.endAt ? new Date(team.endAt).toLocaleDateString() : '-'}</p>
+            <div style={{ display: 'grid', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>팀명</label>
+                  <p style={{ margin: 0, padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>{team.name}</p>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>유형</label>
+                  <p style={{ margin: 0, padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>{team.type}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>목표</label>
+                <p style={{ margin: 0, padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', lineHeight: '1.5' }}>
+                  {team.goal || '목표가 설정되지 않았습니다.'}
+                </p>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>설명</label>
+                <p style={{ margin: 0, padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px', lineHeight: '1.5' }}>
+                  {team.description || '설명이 없습니다.'}
+                </p>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>시작일</label>
+                  <p style={{ margin: 0, padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                    {team.startAt ? new Date(team.startAt).toLocaleDateString('ko-KR') : '설정되지 않음'}
+                  </p>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: '600', marginBottom: '4px', color: '#374151' }}>종료일</label>
+                  <p style={{ margin: 0, padding: '8px 12px', backgroundColor: '#f9fafb', borderRadius: '6px' }}>
+                    {team.endAt ? new Date(team.endAt).toLocaleDateString('ko-KR') : '설정되지 않음'}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : (
-            <form onSubmit={saveOverview} style={{ display: 'grid', gap: 12 }}>
-              <div className="grid cols-2">
-                <label>팀명<br /><input className="input" value={name} onChange={(e) => setName(e.target.value)} /></label>
-                <label>유형<br />
-                  <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
-                    <option value="STUDY">STUDY</option>
-                    <option value="PROJECT">PROJECT</option>
+            <form onSubmit={saveOverview} style={{ display: 'grid', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                <label>
+                  팀명 *
+                  <input 
+                    className="input" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    required 
+                    style={{ marginTop: '4px' }}
+                  />
+                </label>
+                <label>
+                  유형 *
+                  <select 
+                    className="input" 
+                    value={type} 
+                    onChange={(e) => setType(e.target.value)}
+                    style={{ marginTop: '4px' }}
+                  >
+                    <option value="STUDY">스터디</option>
+                    <option value="PROJECT">프로젝트</option>
+                    <option value="CLUB">동아리</option>
+                    <option value="TEAM">팀</option>
                   </select>
                 </label>
               </div>
-              <label>목표<br /><input className="input" value={goal} onChange={(e) => setGoal(e.target.value)} /></label>
-              <label>설명<br /><textarea className="input" value={description} onChange={(e) => setDescription(e.target.value)} /></label>
-              <div className="grid cols-3">
-                <label>상태<br />
-                  <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="ARCHIVED">ARCHIVED</option>
+              
+              <label>
+                목표
+                <textarea 
+                  className="input" 
+                  value={goal} 
+                  onChange={(e) => setGoal(e.target.value)}
+                  placeholder="팀의 목표를 입력해주세요..."
+                  style={{ marginTop: '4px', minHeight: '80px', resize: 'vertical' }}
+                />
+              </label>
+              
+              <label>
+                설명
+                <textarea 
+                  className="input" 
+                  value={description} 
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="팀에 대한 설명을 입력해주세요..."
+                  style={{ marginTop: '4px', minHeight: '100px', resize: 'vertical' }}
+                />
+              </label>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                <label>
+                  상태
+                  <select 
+                    className="input" 
+                    value={status} 
+                    onChange={(e) => setStatus(e.target.value)}
+                    style={{ marginTop: '4px' }}
+                  >
+                    <option value="ACTIVE">활성</option>
+                    <option value="INACTIVE">비활성</option>
+                    <option value="COMPLETED">완료</option>
                   </select>
                 </label>
-                <label>시작일<br /><input className="input" type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)} /></label>
-                <label>종료일<br /><input className="input" type="date" value={endAt} onChange={(e) => setEndAt(e.target.value)} /></label>
+                <label>
+                  시작일
+                  <input 
+                    className="input" 
+                    type="date" 
+                    value={startAt} 
+                    onChange={(e) => setStartAt(e.target.value)}
+                    style={{ marginTop: '4px' }}
+                  />
+                </label>
+                <label>
+                  종료일
+                  <input 
+                    className="input" 
+                    type="date" 
+                    value={endAt} 
+                    onChange={(e) => setEndAt(e.target.value)}
+                    style={{ marginTop: '4px' }}
+                  />
+                </label>
               </div>
-              <div>
-                <button className="btn primary" type="submit">저장</button>
+              
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button
-                  className="btn"
                   type="button"
+                  className="btn"
                   onClick={() => {
                     setEditMode(false);
                     setName(team.name || '');
@@ -254,9 +389,11 @@ export default function TeamDetail() {
                     setStartAt(team.startAt ? team.startAt.split('T')[0] : '');
                     setEndAt(team.endAt ? team.endAt.split('T')[0] : '');
                   }}
-                  style={{ marginLeft: 8 }}
                 >
                   취소
+                </button>
+                <button type="submit" className="btn primary">
+                  💾 저장
                 </button>
               </div>
             </form>
@@ -264,57 +401,257 @@ export default function TeamDetail() {
         </Section>
       )}
 
-      {/* 멤버 */}
+      {/* 진행률 탭 */}
+      {tab === 'progress' && (
+        <Section title="진행률 추이" right={<span style={{ color: '#666', fontSize: '14px' }}>최근 보고서 기준</span>}>
+          {reportsChartData.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px 20px', 
+              color: '#666' 
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+              <p>아직 보고서가 없어 진행률을 표시할 수 없습니다.</p>
+              <p style={{ fontSize: '14px', color: '#999' }}>첫 번째 보고서를 작성해보세요!</p>
+            </div>
+          ) : (
+            <>
+              <div style={{ height: '300px', marginBottom: '20px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={reportsChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="week" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip 
+                      formatter={(value, name) => [`${value}%`, '진행률']}
+                      labelFormatter={(label) => `주차: ${label}`}
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="progress" 
+                      stroke="#667eea" 
+                      strokeWidth={3}
+                      dot={{ fill: '#667eea', strokeWidth: 2, r: 6 }}
+                      activeDot={{ r: 8, stroke: '#667eea', strokeWidth: 2 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* 통계 요약 */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                gap: '16px',
+                padding: '16px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '8px'
+              }}>
+                {(() => {
+                  const progressValues = reportsChartData.map(d => d.progress);
+                  const avg = Math.round(progressValues.reduce((a, b) => a + b, 0) / progressValues.length);
+                  const max = Math.max(...progressValues);
+                  const min = Math.min(...progressValues);
+                  const latest = progressValues[progressValues.length - 1];
+                  
+                  return [
+                    { label: '평균 진행률', value: `${avg}%`, color: '#374151' },
+                    { label: '최고 진행률', value: `${max}%`, color: '#10b981' },
+                    { label: '최저 진행률', value: `${min}%`, color: '#ef4444' },
+                    { label: '최근 진행률', value: `${latest}%`, color: '#667eea' }
+                  ].map((stat, index) => (
+                    <div key={index} style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
+                        {stat.label}
+                      </div>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: stat.color }}>
+                        {stat.value}
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </>
+          )}
+        </Section>
+      )}
+
+      {/* 멤버 탭 */}
       {tab === 'members' && (
-        <Section title="멤버 관리" right={isLeader ? <span style={{ color: 'var(--muted)' }}>리더 전용</span> : null}>
+        <Section title="멤버 관리" right={isLeader ? <span style={{ color: '#666', fontSize: '14px' }}>리더 전용</span> : null}>
           {isLeader && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ 
+              display: 'flex', 
+              gap: 8, 
+              marginBottom: 16,
+              padding: '12px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '8px',
+              border: '1px solid #bae6fd'
+            }}>
               <input
                 className="input"
                 placeholder="추가할 사용자 ID(ObjectId)"
                 value={newUserId}
                 onChange={(e) => setNewUserId(e.target.value)}
+                style={{ flex: 1 }}
               />
-              <button className="btn" onClick={add} disabled={!newUserId}>추가</button>
-              <button className="btn" onClick={inviteLink}>초대 링크</button>
+              <button className="btn" onClick={add} disabled={!newUserId}>👤 추가</button>
+              <button className="btn" onClick={inviteLink}>🔗 초대 링크</button>
             </div>
           )}
-          <table className="table">
-            <thead>
-              <tr>
-                <th>이름</th>
-                <th>역할</th>
-                <th style={{ width: 200 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {memberList.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.name}</td>
-                  <td>{m.role}</td>
-                  <td>
-                    {isLeader && m.id !== user?._id && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {m.role !== 'LEADER' && <button className="btn" onClick={() => promote(m.id)}>리더로</button>}
-                        {m.role !== 'MEMBER' && <button className="btn" onClick={() => demote(m.id)}>멤버로</button>}
-                        <button className="btn" onClick={() => remove(m.id)}>제거</button>
-                      </div>
-                    )}
-                  </td>
+          
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>이름</th>
+                  <th>역할</th>
+                  <th>가입일</th>
+                  {isLeader && <th style={{ width: 200 }}>관리</th>}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {memberList.map((m) => (
+                  <tr key={m.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}>
+                          {m.name.charAt(0).toUpperCase()}
+                        </div>
+                        {m.name}
+                        {m.id === user?._id && (
+                          <span style={{ 
+                            marginLeft: '8px',
+                            padding: '2px 6px',
+                            backgroundColor: '#e0e7ff',
+                            color: '#4338ca',
+                            borderRadius: '10px',
+                            fontSize: '10px'
+                          }}>
+                            나
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ 
+                        padding: '4px 8px',
+                        backgroundColor: m.role === 'LEADER' ? '#fef3c7' : '#f3f4f6',
+                        color: m.role === 'LEADER' ? '#92400e' : '#374151',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        {m.role === 'LEADER' ? '👑 리더' : '👤 멤버'}
+                      </span>
+                    </td>
+                    <td style={{ color: '#6b7280', fontSize: '14px' }}>
+                      {/* TODO: 실제 가입일 데이터가 있다면 표시 */}
+                      -
+                    </td>
+                    {isLeader && (
+                      <td>
+                        {m.id !== user?._id && (
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {m.role !== 'LEADER' && (
+                              <button 
+                                className="btn" 
+                                onClick={() => promote(m.id)}
+                                style={{ fontSize: '12px', padding: '4px 8px' }}
+                              >
+                                👑 리더로
+                              </button>
+                            )}
+                            {m.role !== 'MEMBER' && (
+                              <button 
+                                className="btn" 
+                                onClick={() => demote(m.id)}
+                                style={{ fontSize: '12px', padding: '4px 8px' }}
+                              >
+                                👤 멤버로
+                              </button>
+                            )}
+                            <button 
+                              className="btn" 
+                              onClick={() => remove(m.id)}
+                              style={{ 
+                                fontSize: '12px', 
+                                padding: '4px 8px',
+                                backgroundColor: '#fee2e2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca'
+                              }}
+                            >
+                              🗑️ 제거
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Section>
       )}
 
-      {/* 보고서 */}
+      {/* 보고서 탭 */}
       {tab === 'reports' && (
-        <Section title="최근 보고서" right={<Link className="btn" to={`/reports?teamId=${team._id}`}>전체 보기</Link>}>
+        <Section 
+          title={`최근 보고서 (${reports.length}개)`} 
+          right={
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link className="btn" to={`/reports?teamId=${team._id}`}>
+                📊 전체 보기
+              </Link>
+              {isMember && (
+                <Link 
+                  className="btn primary" 
+                  to="/reports/new" 
+                  state={{ teamId: team._id, teamName: team.name }}
+                >
+                  ✏️ 새 보고서
+                </Link>
+              )}
+            </div>
+          }
+        >
           {reports.length === 0 ? (
-            <div>아직 보고서가 없습니다.</div>
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '40px 20px', 
+              color: '#666' 
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+              <p>아직 작성된 보고서가 없습니다.</p>
+              {isMember && (
+                <Link 
+                  className="btn primary" 
+                  to="/reports/new" 
+                  state={{ teamId: team._id, teamName: team.name }}
+                  style={{ marginTop: '12px' }}
+                >
+                  첫 번째 보고서 작성하기
+                </Link>
+              )}
+            </div>
           ) : (
-            <>
+            <div style={{ overflowX: 'auto' }}>
               <table className="table">
                 <thead>
                   <tr>
@@ -323,34 +660,80 @@ export default function TeamDetail() {
                     <th>목표</th>
                     <th>이슈</th>
                     <th>마감일</th>
+                    <th>작성자</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reports.map((r) => (
-                    <tr key={r._id}>
-                      <td>{new Date(r.weekOf).toLocaleDateString()}</td>
-                      <td>{r.progress}%</td>
-                      <td>{r.goals}</td>
-                      <td>{r.issues}</td>
-                      <td>{r.dueAt ? new Date(r.dueAt).toLocaleDateString() : '-'}</td>
+                  {reports.slice(0, 10).map((r) => (
+                    <tr key={r._id} style={{ cursor: 'pointer' }} onClick={() => nav(`/reports/${r._id}`)}>
+                      <td style={{ fontWeight: '500' }}>
+                        {new Date(r.weekOf).toLocaleDateString('ko-KR', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '6px',
+                            backgroundColor: '#f0f0f0',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              width: `${r.progress}%`,
+                              height: '100%',
+                              backgroundColor: r.progress >= 80 ? '#10b981' : r.progress >= 50 ? '#f59e0b' : '#ef4444'
+                            }} />
+                          </div>
+                          <span style={{ 
+                            fontSize: '14px', 
+                            fontWeight: '600',
+                            color: r.progress >= 80 ? '#10b981' : r.progress >= 50 ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {r.progress}%
+                          </span>
+                        </div>
+                      </td>
+                      <td style={{ 
+                        maxWidth: '200px', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px'
+                      }}>
+                        {r.goals || '목표 없음'}
+                      </td>
+                      <td style={{ 
+                        maxWidth: '150px', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px',
+                        color: r.issues ? '#ef4444' : '#6b7280'
+                      }}>
+                        {r.issues || '이슈 없음'}
+                      </td>
+                      <td style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {r.dueAt ? new Date(r.dueAt).toLocaleDateString('ko-KR') : '-'}
+                      </td>
+                      <td style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {r.author?.username || '알 수 없음'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div style={{ marginTop: 24 }}>
-                <h4>진행률 추이</h4>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={reportsChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="week" />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="progress" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </>
+              
+              {reports.length > 10 && (
+                <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                  <Link className="btn" to={`/reports?teamId=${team._id}`}>
+                    {reports.length - 10}개 더 보기
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
         </Section>
       )}

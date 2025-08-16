@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import client from '../api/client';
+import AIWidget from '../components/dashboard/AIWidget';
 import KPIGroup from '../components/dashboard/KPIGroup';
 import DueSoonList from '../components/dashboard/DueSoonList';
 import TeamHealth from '../components/dashboard/TeamHealth';
@@ -142,39 +143,77 @@ export default function Dashboard(){
   }, [summary]);
 
   return (
-    <div className="container">
-      <h1>대시보드 {titleSuffix}</h1>
-
-      {/* KPI */}
-      {loadingSummary ? (
-        <div className="grid cols-4" style={{ gap:16 }}>
-          <div className="card skeleton" style={{ height:96 }} />
-          <div className="card skeleton" style={{ height:96 }} />
-          <div className="card skeleton" style={{ height:96 }} />
-          <div className="card skeleton" style={{ height:96 }} />
+    <div className="dashboard-container">
+      <div style={{ 
+        padding: '24px',
+        maxWidth: '1280px',
+        margin: '0 auto'
+      }}>
+        {/* 상단 섹션: AI 위젯 + KPI */}
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: '2fr 1fr',
+          gap: '24px',
+          marginBottom: '24px'
+        }}>
+          {/* AI 위젯 */}
+          <AIWidget user={user} />
+          
+          {/* KPI 그룹 */}
+          <KPIGroup userId={user._id} />
         </div>
-      ) : (
-        <KPIGroup items={kpis} />
-      )}
 
-      {/* Due Soon + Quick Actions */}
-      <div className="grid cols-2" style={{ marginTop:16 }}>
-        <DueSoonList items={dueSoon} loading={loadingSummary || loadingDueSoon} />
-        <QuickActions
-          role={user?.role}
-          // QuickActions 내부 구현이 role 기반이면 이 prop만으로 충분
-          // 필요 시 canCreateTeam/canCreateReport 등을 별도로 내려도 됨
-        />
+        {/* 중간 섹션: 팀 건강도 + 마감 예정 */}
+        <div style={{ 
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '24px',
+          marginBottom: '24px'
+        }}>
+          {/* 팀 건강도 */}
+          <TeamHealth 
+            userId={user._id} 
+            healthRows={healthRows} 
+            loading={loadingHealth || loadingSummary} 
+          />
+          
+          {/* 마감 예정 목록 */}
+          <DueSoonList 
+            userId={user._id} 
+            items={dueSoon}
+            loading={loadingDueSoon || loadingSummary} 
+          />
+        </div>
+
+        {/* 하단 섹션: 활동 피드 */}
+        <div>
+          <ActivityFeed userId={user._id} />
+        </div>
       </div>
 
-      {/* Team Health + Activity */}
-      <div className="grid cols-2" style={{ marginTop:16 }}>
-        <TeamHealth
-          data={healthRows}
-          loading={loadingSummary || loadingHealth}
-        />
-        <ActivityFeed />
-      </div>
+      <style jsx>{`
+        .dashboard-container {
+          background-color: #f9fafb;
+          min-height: 100vh;
+        }
+
+        .card {
+          background-color: white;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          padding: 20px;
+        }
+
+        @media (max-width: 1024px) {
+          .dashboard-container > div {
+            padding: 16px;
+          }
+          
+          .dashboard-container > div > div {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

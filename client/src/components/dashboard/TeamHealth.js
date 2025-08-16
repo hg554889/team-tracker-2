@@ -13,17 +13,33 @@ function Spark({ value = 0 }){
   );
 }
 
-export default function TeamHealth({ data, loading }){
-  if (loading) return <div className="card skeleton" style={{ height:240 }} />;
-  
+export default function TeamHealth({ userId, healthRows = [], loading = false }) {
+  if (loading) {
+    return (
+      <div className="card">
+        <h3>팀 건강도</h3>
+        <div>로딩 중...</div>
+      </div>
+    );
+  }
+
+  if (!healthRows?.length) {
+    return (
+      <div className="card">
+        <h3>팀 건강도</h3>
+        <div>표시할 데이터가 없습니다.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="card">
       <h3>팀 건강도</h3>
-      <div style={{ marginTop:12 }}>
-        {data.map(row => (
-          <div key={row._id} style={{ display:'flex', marginBottom:8 }}>
-            <div style={{ flex:1 }}>{row.team}</div> {/* team._id 대신 team 사용 */}
-            <div>{row.avgProgress}%</div>
+      <div>
+        {healthRows.map(row => (
+          <div key={row._id}>
+            <span>{row.team}</span>
+            <span>{row.avgProgress}%</span>
           </div>
         ))}
       </div>
