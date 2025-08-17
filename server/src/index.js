@@ -5,8 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
-import { migrateExistingUsers } from './utils/migration.js';
-import { migrateClubData, validateClubSeparation } from './utils/clubMigration.js';
 import { errorHandler } from './middleware/error.js';
 import { requireAuth } from './middleware/auth.js';
 import { enrichRole } from './middleware/enrichRole.js';
@@ -20,9 +18,6 @@ import dashboardRoutes from './routes/dashboard.js';
 import clubRoutes from './routes/clubs.js';
 import inviteRoutes from './routes/invites.js';
 import aiRoutes from './routes/ai.js';
-import approvalRoutes from './routes/approvals.js';
-import roleRequestRoutes from './routes/roleRequests.js';
-import clubSettingsRoutes from './routes/clubSettings.js';
 
 const app = express();
 
@@ -65,33 +60,11 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/role-requests', roleRequestRoutes);
-app.use('/api/club-settings', clubSettingsRoutes);
 
 // Error handler
 app.use(errorHandler);
 
-connectDB().then(async () => {
-  // Run migration for existing users
-  try {
-    await migrateExistingUsers();
-  } catch (error) {
-    console.error('User migration failed, but server will continue:', error);
-  }
-
-  // Run club data migration
-  try {
-    await migrateClubData();
-    const validation = await validateClubSeparation();
-    if (validation.isValid) {
-      console.log('[MIGRATION] Club separation is properly configured');
-    } else {
-      console.warn('[MIGRATION] Club separation validation found issues:', validation);
-    }
-  } catch (error) {
-    console.error('Club migration failed, but server will continue:', error);
-  }
-  
+connectDB().then(() => {
   app.listen(env.PORT, () => {
     console.log(`[API] listening on :${env.PORT}`);
     console.log('[CORS] allowed:', env.CLIENT_URLS.join(', '));
