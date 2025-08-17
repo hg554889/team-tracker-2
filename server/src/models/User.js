@@ -6,8 +6,17 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true },
   username: { type: String, required: true },
   password: { type: String, required: true },
+  studentId: { type: Number, required: false },
   role: { type: String, enum: Object.values(Roles), default: Roles.MEMBER },
-  clubId: { type: String, index: true }
+  clubId: { type: String, index: true },
+  isApproved: { type: Boolean, default: false },
+  approvalStatus: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending' 
+  },
+  approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function(next) {

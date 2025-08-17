@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { listTeams, createTeam } from '../api/teams';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useClub } from '../contexts/ClubContext';
 
 export default function Teams(){
   const { user } = useAuth();
+  const { currentClub } = useClub();
 
   // 목록 상태
   const [teams, setTeams] = useState([]);
@@ -31,19 +33,28 @@ export default function Teams(){
   async function fetchTeams(params = {}){
     setLoading(true);
     try{
-      const { data } = await listTeams({
+      const requestParams = {
         q: (params.q ?? q) || undefined,
         type: (params.type ?? type) || undefined,
         status: (params.status ?? status) || undefined,
         include: 'leader'  // 리더 정보를 포함하도록 요청
-      });
+      };
+      
+      // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
+      if (user?.role === 'ADMIN' && currentClub) {
+        requestParams.clubId = currentClub;
+      } else if (user?.clubId) {
+        requestParams.clubId = user.clubId;
+      }
+      
+      const { data } = await listTeams(requestParams);
       setTeams(data.items || []);
     } finally{
       setLoading(false);
     }
   }
 
-  useEffect(()=>{ fetchTeams(); /* eslint-disable-next-line */ },[]);
+  useEffect(()=>{ fetchTeams(); /* eslint-disable-next-line */ },[currentClub]);
 
   async function onSearch(e){
     e.preventDefault();
@@ -52,7 +63,11 @@ export default function Teams(){
 
   async function onCreate(e){
     e.preventDefault();
-    if (!user?.clubId){
+    
+    // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
+    const clubId = (user?.role === 'ADMIN' && currentClub) ? currentClub : user?.clubId;
+    
+    if (!clubId){
       window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'먼저 프로필에서 동아리를 선택하세요.' } }));
       return;
     }
@@ -62,7 +77,7 @@ export default function Teams(){
         type: cType,
         description,
         goal,
-        clubId: user.clubId,
+        clubId: clubId,
         startAt: startAt ? new Date(startAt).toISOString() : undefined,
         endAt: endAt ? new Date(endAt).toISOString() : undefined
       });

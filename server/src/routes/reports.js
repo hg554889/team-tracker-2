@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Report } from '../models/Report.js';
 import { Team } from '../models/Team.js';
 import { validate } from '../middleware/validate.js';
+import { requireClubAccess, validateReportAccess } from '../middleware/clubAccess.js';
 import { reportCreateSchema, commentCreateSchema } from '../validators/reports.js';
 import { requireAuth } from '../middleware/auth.js';
 import { Roles } from '../utils/roles.js';
@@ -25,7 +26,7 @@ const createBody = z.object({
 function toDateOrNull(v){ if(!v) return null; const d=new Date(v); return Number.isNaN(d.getTime())?null:d; }
 
 // 생성/업서트
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
   try {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error:'ValidationError', details:parsed.error.flatten() });
@@ -34,16 +35,24 @@ router.post('/', requireAuth, async (req, res, next) => {
     const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ error: 'TeamNotFound' });
 
-    const { id: userId, role } = req.user;
+    const { id: userId, role, clubId: userClubId } = req.user;
+    
+    // 동아리 접근 권한 확인
+    if (role !== Roles.ADMIN && team.clubId !== userClubId) {
+      return res.status(403).json({ error: 'ClubAccessDenied' });
+    }
+    
     const isMember = (team.members || []).some(m => m?.user?.toString() === userId);
-    if (role !== Roles.ADMIN && !isMember) return res.status(403).json({ error: 'Forbidden' });
+    if (role !== Roles.ADMIN && role !== Roles.EXECUTIVE && !isMember) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const weekDate = toDateOrNull(weekOf);
     const dueDate  = toDateOrNull(dueAt);
     if (!weekDate) return res.status(400).json({ error: 'InvalidWeekOf' });
 
     const filter = { team: teamId, weekOf: weekDate };
-    const $setOnInsert = { team: teamId, weekOf: weekDate, author: userId }; // author는 최초만
+    const $setOnInsert = { team: teamId, weekOf: weekDate, author: userId, clubId: team.clubId };
     const $set = { progress, goals, issues, dueAt: dueDate || undefined };
     if (attachments) $set.attachments = attachments;
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { requireClubAccess } from '../middleware/clubAccess.js';
 import { User } from '../models/User.js';
 import { Roles } from '../utils/roles.js';
 
@@ -32,19 +33,24 @@ router.put('/me', requireAuth, async (req, res) => {
 });
 
 // 목록: ADMIN은 전 동아리(필터 가능), EXECUTIVE는 자기 동아리만, 검색(q)
-router.get('/', requireAuth, async (req, res) => {
-  const me = await User.findById(req.user.id).select('role clubId');
-  if (!me) return res.status(401).json({ error: 'Unauthorized' });
-
+router.get('/', requireAuth, requireClubAccess, async (req, res) => {
+  const { role, clubId: userClubId } = req.user;
   const { clubId, q } = req.query;
+
   let query = {};
-  if (me.role === Roles.ADMIN) {
-    if (clubId) query.clubId = clubId;
-  } else if (me.role === Roles.EXECUTIVE) {
-    query.clubId = me.clubId;
+  
+  // Club access control
+  if (role === Roles.ADMIN) {
+    if (clubId) {
+      query.clubId = clubId;
+    }
+    // ADMIN은 clubId 필터 없으면 모든 동아리 조회 가능
+  } else if (role === Roles.EXECUTIVE) {
+    query.clubId = userClubId; // 자신의 동아리만
   } else {
     return res.status(403).json({ error: 'Forbidden' });
   }
+
   if (q) {
     query.$or = [
       { username: { $regex: q, $options: 'i' } },
@@ -55,7 +61,7 @@ router.get('/', requireAuth, async (req, res) => {
   const users = await User.find(query).select('-password');
   const masked = users.map(u => {
     const doc = u.toObject();
-    if (me.role === Roles.EXECUTIVE && (u.role === Roles.ADMIN || u.role === Roles.EXECUTIVE)) {
+    if (role === Roles.EXECUTIVE && (u.role === Roles.ADMIN || u.role === Roles.EXECUTIVE)) {
       doc.role = 'HIDDEN';
     }
     return doc;

@@ -15,8 +15,19 @@ export default function Login(){
       const res = await login({ email, password });
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
-      nav(res.data.user.clubId ? '/' : '/select-club');
-      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'로그인 성공'} }));
+      
+      const user = res.data.user;
+      if (user.approvalStatus === 'pending') {
+        nav('/approval-pending');
+      } else if (user.approvalStatus === 'rejected') {
+        window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'계정이 거절되었습니다. 관리자에게 문의하세요.'} }));
+        localStorage.removeItem('token');
+        setUser(null);
+        return;
+      } else {
+        nav(user.clubId ? '/' : '/select-club');
+        window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'로그인 성공'} }));
+      }
     } catch {}
   }
 

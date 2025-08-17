@@ -8,15 +8,20 @@ const CommentSchema = new Schema({
 const ReportSchema = new Schema({
   team: { type: Types.ObjectId, ref: 'Team', required: true, index: true },
   author: { type: Types.ObjectId, ref: 'User', required: true },
+  clubId: { type: String, required: true, index: true },
   weekOf: { type: Date, required: true },
   progress: { type: Number, min: 0, max: 100, default: 0 },
   goals: { type: String, default: '' },
   issues: { type: String, default: '' },
   dueAt: { type: Date },
-  // ✅ 코멘트 필드 추가
+  title: { type: String, default: '' },
   comments: { type: [CommentSchema], default: [] }
 }, { timestamps: true });
 
+// 복합 인덱스 추가
 ReportSchema.index({ team: 1, weekOf: 1 }, { unique: true });
+ReportSchema.index({ clubId: 1, weekOf: 1 });
+ReportSchema.index({ clubId: 1, author: 1 });
+ReportSchema.index({ clubId: 1, dueAt: 1 });
 
 export const Report = model('Report', ReportSchema);

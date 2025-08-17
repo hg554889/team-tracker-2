@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { getMe } from '../api/users';
+import { getMe } from '../api/auth';
 
 const AuthContext = createContext();
 
@@ -10,7 +10,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { setLoading(false); return; }
-    getMe().then(res => { setUser(res.data); }).finally(()=> setLoading(false));
+    getMe()
+      .then(res => { setUser(res.data); })
+      .catch(err => {
+        localStorage.removeItem('token');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
