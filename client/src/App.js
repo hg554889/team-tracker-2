@@ -18,6 +18,8 @@ import Toast from './components/Toast';
 import AcceptInvite from './pages/AcceptInvite';
 import ReportsList from './pages/ReportsList';
 import ReportDetail from './pages/ReportDetail';
+import ApprovalPending from './pages/ApprovalPending';
+import ApprovalRequests from './pages/ApprovalRequests';
 
 export default function App(){
   const { pathname } = useLocation();
@@ -37,9 +39,11 @@ export default function App(){
         <Route path="/reports/new" element={<ProtectedRoute><ReportForm /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/invite/:code" element={<ProtectedRoute><AcceptInvite /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/approval-pending" element={<ProtectedRoute><ApprovalPending /></ProtectedRoute>} />
+        <Route path="/admin/approvals" element={<ProtectedRoute><RoleGuard roles={[Roles.ADMIN, Roles.EXECUTIVE]}><ApprovalRequests /></RoleGuard></ProtectedRoute>} />
         <Route path="/reports" element={<ReportsList />} />
         <Route path="/reports/:id" element={<ReportDetail />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <Toast />
     </>

@@ -18,6 +18,9 @@ export default function Navbar(){
           <button className="btn ghost" onClick={()=>nav('/teams')}>팀</button>
           {user?.role === 'ADMIN' && (<button className="btn ghost" onClick={()=>nav('/admin/users')}>ADMIN</button>)}
           {user?.role === 'EXECUTIVE' && (<button className="btn ghost" onClick={()=>nav('/executive/users')}>EXECUTIVE</button>)}
+          {(user?.role === 'ADMIN' || user?.role === 'EXECUTIVE') && (
+            <button className="btn ghost" onClick={()=>nav('/admin/approvals')}>승인 관리</button>
+          )}
           <button className="btn ghost" onClick={()=>nav('/reports/new')}>보고서 작성</button>
           <button className="btn ghost" onClick={()=>nav('/profile')}>프로필</button>
           {user ? <button className="btn primary" onClick={logout}>로그아웃</button> : <button className="btn primary" onClick={()=>nav('/login')}>로그인</button>}

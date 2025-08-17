@@ -5,9 +5,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
+import { migrateExistingUsers } from './utils/migration.js';
 import { errorHandler } from './middleware/error.js';
 import { requireAuth } from './middleware/auth.js';
 import { enrichRole } from './middleware/enrichRole.js';
+import { requireApproval } from './middleware/approvalCheck.js';
 
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
@@ -17,6 +19,8 @@ import dashboardRoutes from './routes/dashboard.js';
 import clubRoutes from './routes/clubs.js';
 import inviteRoutes from './routes/invites.js';
 import aiRoutes from './routes/ai.js';
+import approvalRoutes from './routes/approvals.js';
+import roleRequestRoutes from './routes/roleRequests.js';
 
 const app = express();
 
@@ -48,16 +52,30 @@ app.use('/api/invites', inviteRoutes);
 
 // Protected (최신 역할 동기화)
 app.use('/api', requireAuth, enrichRole);
+
+// Approval endpoints (no approval check needed)
+app.use('/api/approvals', approvalRoutes);
+
+// Other protected endpoints (require approval)
+app.use('/api', requireApproval);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/role-requests', roleRequestRoutes);
 
 // Error handler
 app.use(errorHandler);
 
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Run migration for existing users
+  try {
+    await migrateExistingUsers();
+  } catch (error) {
+    console.error('Migration failed, but server will continue:', error);
+  }
+  
   app.listen(env.PORT, () => {
     console.log(`[API] listening on :${env.PORT}`);
     console.log('[CORS] allowed:', env.CLIENT_URLS.join(', '));
