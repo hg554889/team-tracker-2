@@ -40,12 +40,11 @@ export default function Teams(){
         include: 'leader'  // 리더 정보를 포함하도록 요청
       };
       
-      // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
+      // ADMIN인 경우에만 currentClub을 사용 (null이면 전체 보기)
       if (user?.role === 'ADMIN' && currentClub) {
         requestParams.clubId = currentClub;
-      } else if (user?.clubId) {
-        requestParams.clubId = user.clubId;
       }
+      // 다른 역할은 서버에서 자동으로 본인 동아리 필터링
       
       const { data } = await listTeams(requestParams);
       setTeams(data.items || []);
@@ -64,7 +63,7 @@ export default function Teams(){
   async function onCreate(e){
     e.preventDefault();
     
-    // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
+    // ADMIN인 경우 currentClub 또는 본인 clubId 사용, 다른 역할은 본인 clubId만
     const clubId = (user?.role === 'ADMIN' && currentClub) ? currentClub : user?.clubId;
     
     if (!clubId){

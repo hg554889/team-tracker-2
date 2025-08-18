@@ -18,14 +18,13 @@ export const ClubProvider = ({ children }) => {
       return;
     }
     
-    if (user.clubId) {
+    // ADMIN은 기본적으로 currentClub을 null로 설정 (전체 보기)
+    if (user.role === 'ADMIN') {
+      setCurrentClub(null);
+      loadAvailableClubs();
+    } else if (user.clubId) {
       setCurrentClub(user.clubId);
       loadClubData(user.clubId, user);
-    }
-    
-    // ADMIN인 경우 사용 가능한 모든 동아리 로드
-    if (user.role === 'ADMIN') {
-      loadAvailableClubs();
     }
     
     setLoading(false);
@@ -33,18 +32,15 @@ export const ClubProvider = ({ children }) => {
 
   const loadClubData = async (clubId, currentUser = user) => {
     try {
-      // ✅ ADMIN은 모든 clubId, EXECUTIVE는 자신의 clubId만 허용
+      // ADMIN은 모든 clubId, EXECUTIVE는 자신의 clubId만 허용
       if (currentUser?.role === 'ADMIN' || 
           (currentUser?.role === 'EXECUTIVE' && clubId === currentUser?.clubId)) {
-        console.log(`[ClubContext] Loading data for club: ${clubId}`); // 디버깅 로그
         const response = await client.get(`/club-settings/${clubId}`);
         setClubSettings(prev => ({
           ...prev,
           [clubId]: response.data
         }));
-        console.log(`[ClubContext] Successfully loaded data for club: ${clubId}`); // 디버깅 로그
       } else {
-        console.log(`[ClubContext] Using default settings for club: ${clubId} (insufficient permissions)`);
         // 권한이 없는 경우 기본 설정 사용
         setClubSettings(prev => ({
           ...prev,
@@ -52,28 +48,21 @@ export const ClubProvider = ({ children }) => {
         }));
       }
     } catch (error) {
-      console.error(`[ClubContext] Failed to load club data for ${clubId}:`, error);
-      // ✅ 에러인 경우 기본 설정 사용 (ADMIN도 포함)
+      console.error('Failed to load club data:', error);
+      // 에러인 경우 기본 설정 사용
       setClubSettings(prev => ({
         ...prev,
         [clubId]: getDefaultClubSettings()
       }));
-      
-      // ✅ ADMIN인 경우 더 자세한 에러 로깅
-      if (currentUser?.role === 'ADMIN') {
-        console.error(`[ClubContext] ADMIN failed to access club ${clubId}. This might indicate a server configuration issue.`);
-      }
     }
   };
 
   const loadAvailableClubs = async () => {
     try {
-      console.log('[ClubContext] Loading available clubs for ADMIN');
       const response = await client.get('/clubs');
       setAvailableClubs(response.data);
-      console.log('[ClubContext] Available clubs loaded:', response.data);
     } catch (error) {
-      console.error('[ClubContext] Failed to load available clubs:', error);
+      console.error('Failed to load available clubs:', error);
     }
   };
 
@@ -82,7 +71,6 @@ export const ClubProvider = ({ children }) => {
       throw new Error('Only admins can switch clubs');
     }
     
-    console.log(`[ClubContext] ADMIN switching to club: ${clubId}`);
     setCurrentClub(clubId);
     
     if (!clubSettings[clubId]) {
@@ -123,21 +111,19 @@ export const ClubProvider = ({ children }) => {
 
   const updateClubSettings = async (clubId, newSettings) => {
     try {
-      // ✅ ADMIN과 EXECUTIVE만 club settings 업데이트 허용
+      // ADMIN과 EXECUTIVE만 club settings 업데이트 허용
       if (!['ADMIN', 'EXECUTIVE'].includes(user?.role)) {
         throw new Error('Insufficient permissions to update club settings');
       }
       
-      console.log(`[ClubContext] Updating settings for club: ${clubId}`);
       const response = await client.put(`/club-settings/${clubId}`, newSettings);
       setClubSettings(prev => ({
         ...prev,
         [clubId]: response.data
       }));
-      console.log(`[ClubContext] Successfully updated settings for club: ${clubId}`);
       return response.data;
     } catch (error) {
-      console.error(`[ClubContext] Failed to update club settings for ${clubId}:`, error);
+      console.error('Failed to update club settings:', error);
       throw error;
     }
   };

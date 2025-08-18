@@ -21,10 +21,11 @@ export default function Dashboard(){
         setLoading(true);
         const params = {};
         
-        // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
+        // ADMIN인 경우에만 currentClub을 사용 (null이면 전체 보기)
         if (user?.role === 'ADMIN' && currentClub) {
           params.clubId = currentClub;
         }
+        // 다른 역할은 본인 동아리 자동 필터링 (서버에서 처리)
         
         const { data } = await client.get('/dashboard/summary', { params });
         setSummary(data);
