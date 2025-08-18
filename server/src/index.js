@@ -51,7 +51,7 @@ app.use('/api/invites', inviteRoutes);
 app.use('/api', requireAuth, enrichRole);
 
 // Approval endpoints (no approval check needed)
-app.use('/api/approvals', approvalRoutes);
+// app.use('/api/approvals', approvalRoutes);
 
 // Other protected endpoints (require approval)
 app.use('/api', requireApproval);

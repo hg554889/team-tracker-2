@@ -7,6 +7,7 @@ import { loginLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
+// 회원가입 시
 router.post('/signup', validate(signupSchema), async (req, res, next) => {
   try {
     const { email, username, password, studentId } = req.body;
@@ -26,7 +27,13 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
       approvalStatus: 'pending'
     });
     
-    const token = signJwt({ id: user.id, role: user.role });
+    // ✅ clubId 포함
+    const token = signJwt({ 
+      id: user.id, 
+      role: user.role, 
+      clubId: user.clubId 
+    });
+    
     res.json({ 
       token, 
       user: { 
@@ -43,6 +50,7 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// 로그인 시
 router.post('/login', loginLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -50,7 +58,14 @@ router.post('/login', loginLimiter, validate(loginSchema), async (req, res, next
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: 'InvalidCredentials' });
     }
-    const token = signJwt({ id: user.id, role: user.role });
+    
+    // ✅ clubId 포함
+    const token = signJwt({ 
+      id: user.id, 
+      role: user.role, 
+      clubId: user.clubId 
+    });
+    
     res.json({ 
       token, 
       user: { 
