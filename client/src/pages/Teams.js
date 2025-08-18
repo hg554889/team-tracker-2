@@ -100,6 +100,24 @@ export default function Teams(){
           <button className="btn" onClick={()=> setShowFilters(v=>!v)}>
             {showFilters ? '필터 닫기' : '필터 열기'}
           </button>
+          {['LEADER', 'MEMBER'].includes(user?.role) && (
+            <>
+              <button 
+                className="btn" 
+                onClick={()=> fetchTeams({ scope: 'mine' })}
+                style={{ backgroundColor: '#28a745', color: 'white' }}
+              >
+                내 팀만 보기
+              </button>
+              <button 
+                className="btn" 
+                onClick={()=> fetchTeams()}
+                style={{ backgroundColor: '#6c757d', color: 'white' }}
+              >
+                전체 보기
+              </button>
+            </>
+          )}
           {canCreate && (
             <button className="btn" onClick={()=> setShowCreate(v=>!v)}>
               {showCreate ? '생성 폼 닫기' : '팀 생성'}
@@ -180,8 +198,26 @@ export default function Teams(){
             </thead>
             <tbody>
               {teams.map(t => (
-                <tr key={t._id}>
-                  <td>{t.name}</td>
+                <tr key={t._id} style={{
+                  backgroundColor: t.userMembership?.isMember ? '#f8f9ff' : 'transparent'
+                }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {t.name}
+                      {t.userMembership?.isMember && (
+                        <span style={{
+                          backgroundColor: t.userMembership.isLeader ? '#28a745' : '#007bff',
+                          color: 'white',
+                          fontSize: '10px',
+                          padding: '2px 6px',
+                          borderRadius: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {t.userMembership.isLeader ? '팀장' : '소속됨'}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td>{t.type}</td>
                   <td>{t.status}</td>
                   <td>{t.leader?.username || '-'}</td>

@@ -63,7 +63,30 @@ router.get('/', requireAuth, requireClubAccess, async (req, res) => {
       .sort({ createdAt: -1 }),
     Team.countDocuments(q)
   ]);
-  res.json({ items, page, limit, total });
+
+  // 각 팀에 사용자의 멤버십 정보 추가
+  const itemsWithMembership = items.map(team => {
+    const teamObj = team.toObject();
+    const userId = req.user.id;
+    
+    // 사용자가 팀 리더인지 확인
+    const isLeader = String(team.leader._id) === String(userId);
+    
+    // 사용자가 팀 멤버인지 확인
+    const memberInfo = team.members?.find(m => String(m.user) === String(userId));
+    const isMember = !!memberInfo;
+    
+    // 멤버십 정보 추가
+    teamObj.userMembership = {
+      isMember: isMember || isLeader,
+      isLeader: isLeader,
+      role: isLeader ? 'LEADER' : (memberInfo?.role || null)
+    };
+    
+    return teamObj;
+  });
+
+  res.json({ items: itemsWithMembership, page, limit, total });
 });
 
 router.get('/:id', requireAuth, validateTeamAccess, async (req, res) => {
