@@ -10,7 +10,7 @@ import { requireAuth } from './middleware/auth.js';
 import { enrichRole } from './middleware/enrichRole.js';
 import { requireApproval } from './middleware/approvalCheck.js';
 
-// ✅ 모든 라우터 import (clubSettings 추가)
+// ✅ 모든 라우터 import (clubSettings, roleRequests 추가)
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import teamRoutes from './routes/teams.js';
@@ -20,6 +20,7 @@ import clubRoutes from './routes/clubs.js';
 import inviteRoutes from './routes/invites.js';
 import aiRoutes from './routes/ai.js';
 import approvalRoutes from './routes/approvals.js';
+import roleRequestRoutes from './routes/roleRequests.js'; // ✅ 추가된 import
 import clubSettingsRoutes from './routes/clubSettings.js'; // ✅ 추가된 import
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/teams', teamRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/role-requests', roleRequestRoutes); // ✅ roleRequests 라우터 등록
 app.use('/api/club-settings', clubSettingsRoutes); // ✅ clubSettings 라우터 등록
 
 // Error handler
