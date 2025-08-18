@@ -42,6 +42,7 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
       return res.status(403).json({ error: 'ClubAccessDenied' });
     }
     
+    // 팀 멤버십 확인 (EXECUTIVE는 예외)
     const isMember = (team.members || []).some(m => m?.user?.toString() === userId);
     if (role !== Roles.ADMIN && role !== Roles.EXECUTIVE && !isMember) {
       return res.status(403).json({ error: 'Forbidden' });
@@ -104,16 +105,29 @@ router.get('/due-soon', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// 팀별 목록 (권한 체크)
+// 팀별 목록 (권한 체크 강화)
 router.get('/team/:teamId', requireAuth, async (req, res, next) => {
   try {
     const teamId = req.params.teamId;
     const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ error: 'TeamNotFound' });
 
-    const { id: userId, role } = req.user;
-    const isMember = (team.members || []).some(m => m?.user?.toString() === userId);
-    if (role !== Roles.ADMIN && !isMember) return res.status(403).json({ error: 'Forbidden' });
+    const { id: userId, role, clubId: userClubId } = req.user;
+    
+    // 권한 체크: ADMIN, EXECUTIVE(같은 동아리), 팀 멤버
+    let hasAccess = false;
+    if (role === Roles.ADMIN) {
+      hasAccess = true;
+    } else if (role === Roles.EXECUTIVE && team.clubId === userClubId) {
+      hasAccess = true;
+    } else {
+      const isMember = (team.members || []).some(m => m?.user?.toString() === userId);
+      hasAccess = isMember;
+    }
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const items = await Report.find({ team: teamId }).sort({ weekOf: -1 });
     res.json(items);
@@ -129,14 +143,30 @@ router.get('/', requireAuth, async (req, res, next) => {
     const skip = (p - 1) * l;
 
     let allowedTeamIds = [];
-    if (req.user.role === Roles.ADMIN) {
+    const { role, clubId: userClubId, id: userId } = req.user;
+    
+    if (role === Roles.ADMIN) {
       if (teamId) allowedTeamIds = [teamId];
       else {
         const all = await Team.find({}, { _id: 1 });
         allowedTeamIds = all.map(t => t._id);
       }
+    } else if (role === Roles.EXECUTIVE) {
+      // EXECUTIVE는 본인 동아리 모든 팀
+      const clubTeams = await Team.find({ clubId: userClubId }, { _id: 1 });
+      if (teamId) {
+        const requestedTeam = await Team.findById(teamId);
+        if (requestedTeam && requestedTeam.clubId === userClubId) {
+          allowedTeamIds = [teamId];
+        } else {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+      } else {
+        allowedTeamIds = clubTeams.map(t => t._id);
+      }
     } else {
-      const myTeams = await Team.find({ 'members.user': req.user.id }, { _id: 1 });
+      // LEADER/MEMBER는 본인 참여 팀만
+      const myTeams = await Team.find({ 'members.user': userId }, { _id: 1 });
       const myIds = myTeams.map(t => String(t._id));
       if (teamId) {
         if (!myIds.includes(String(teamId))) return res.status(403).json({ error: 'Forbidden' });
@@ -162,32 +192,57 @@ router.get('/', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// 단건 조회 (댓글 작성자 이름 포함)
+// 단건 조회 (댓글 작성자 이름 포함) - EXECUTIVE 권한 추가
 router.get('/:id', requireAuth, async (req, res, next) => {
   try {
-    const r = await Report.findById(req.params.id).populate('comments.author', 'username').populate('team', 'name');
+    const r = await Report.findById(req.params.id)
+      .populate('comments.author', 'username')
+      .populate('team', 'name');
+    
     if (!r) return res.status(404).json({ error: 'NotFound' });
 
-    const team = await Team.findById(r.team._id);
-    const { id: userId, role } = req.user;
-    const isMember = (team?.members || []).some(m => m?.user?.toString() === userId);
-    if (role !== Roles.ADMIN && !isMember) return res.status(403).json({ error: 'Forbidden' });
+    const { id: userId, role, clubId: userClubId } = req.user;
+
+    // 권한 체크: ADMIN, EXECUTIVE(같은 동아리), 팀 멤버
+    let hasAccess = false;
+    
+    if (role === Roles.ADMIN) {
+      hasAccess = true;
+    } else if (role === Roles.EXECUTIVE && r.clubId === userClubId) {
+      hasAccess = true;
+    } else {
+      const team = await Team.findById(r.team._id);
+      const isMember = (team?.members || []).some(m => m?.user?.toString() === userId);
+      hasAccess = isMember;
+    }
+    
+    if (!hasAccess) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     res.json(r);
-  } catch (e) { next(e); }
+  } catch (e) { 
+    console.error('Report get error:', e);
+    next(e); 
+  }
 });
 
-// 수정 (ADMIN 또는 작성자/리더)
+// 수정 (ADMIN, EXECUTIVE, 작성자, 또는 리더)
 router.put('/:id', requireAuth, async (req, res, next) => {
   try {
     const r = await Report.findById(req.params.id);
     if (!r) return res.status(404).json({ error: 'NotFound' });
 
     const team = await Team.findById(r.team);
-    const { id: userId, role } = req.user;
+    const { id: userId, role, clubId: userClubId } = req.user;
+    
     const isLeader = team?.leader?.toString() === userId;
     const isAuthor = r.author.toString() === userId;
-    if (!(role === Roles.ADMIN || isLeader || isAuthor)) return res.status(403).json({ error: 'Forbidden' });
+    const isExecutiveInSameClub = (role === Roles.EXECUTIVE && r.clubId === userClubId);
+    
+    if (!(role === Roles.ADMIN || isExecutiveInSameClub || isLeader || isAuthor)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     const up = {};
     if (req.body.progress !== undefined) up.progress = Number(req.body.progress);
@@ -197,29 +252,40 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 
     const updated = await Report.findByIdAndUpdate(req.params.id, up, { new: true });
     res.json(updated);
-  } catch (e) { next(e); }
+  } catch (e) { 
+    console.error('Report update error:', e);
+    next(e); 
+  }
 });
 
-// ✅ 코멘트 작성 (안정화 버전)
+// 코멘트 작성 (EXECUTIVE 권한 추가)
 router.post('/:id/comments', requireAuth, validate(commentCreateSchema), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { text } = req.body;
-    const userId = req.user.id;
+    const { id: userId, role, clubId: userClubId } = req.user;
 
     const report = await Report.findById(id).populate({ path: 'team', select: 'members' });
     if (!report) return res.status(404).json({ error: 'ReportNotFound' });
 
-    let isMember = false;
-    if (req.user.role === Roles.ADMIN) {
-      isMember = true;
+    let canComment = false;
+    
+    // 권한 체크: ADMIN, EXECUTIVE(같은 동아리), 팀 멤버
+    if (role === Roles.ADMIN) {
+      canComment = true;
+    } else if (role === Roles.EXECUTIVE && report.clubId === userClubId) {
+      canComment = true;
     } else if (report.team && Array.isArray(report.team.members)) {
-      isMember = report.team.members.some((m) => String(m.user) === String(userId));
+      canComment = report.team.members.some((m) => String(m.user) === String(userId));
     } else {
+      // 팀 정보가 부족한 경우 다시 조회
       const team = await Team.findById(report.team);
-      isMember = (team?.members || []).some((m) => String(m.user) === String(userId));
+      canComment = (team?.members || []).some((m) => String(m.user) === String(userId));
     }
-    if (!isMember) return res.status(403).json({ error: 'Forbidden' });
+    
+    if (!canComment) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
 
     // author 필드 사용
     report.comments.push({ author: userId, text, createdAt: new Date() });
@@ -238,22 +304,34 @@ router.post('/:id/comments', requireAuth, validate(commentCreateSchema), async (
   }
 });
 
-// ✅ 코멘트 목록 (안정화)
+// 코멘트 목록 (EXECUTIVE 권한 추가)
 router.get('/:id/comments', requireAuth, async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { id: userId, role, clubId: userClubId } = req.user;
+    
     const report = await Report.findById(id)
-      .select('comments team')
-      .populate('comments.author', 'username')  // user -> author
+      .select('comments team clubId')
+      .populate('comments.author', 'username')
       .populate({ path: 'team', select: 'members' });
 
     if (!report) return res.status(404).json({ error: 'ReportNotFound' });
 
-    // ADMIN or 팀 멤버만 열람 허용 (정책에 맞게 유지)
-    if (req.user.role !== Roles.ADMIN) {
+    let canViewComments = false;
+    
+    // 권한 체크: ADMIN, EXECUTIVE(같은 동아리), 팀 멤버
+    if (role === Roles.ADMIN) {
+      canViewComments = true;
+    } else if (role === Roles.EXECUTIVE && report.clubId === userClubId) {
+      canViewComments = true;
+    } else {
       const isMember = (report.team?.members || [])
-        .some((m) => String(m.user) === String(req.user.id));
-      if (!isMember) return res.status(403).json({ error: 'Forbidden' });
+        .some((m) => String(m.user) === String(userId));
+      canViewComments = isMember;
+    }
+    
+    if (!canViewComments) {
+      return res.status(403).json({ error: 'Forbidden' });
     }
 
     res.json(report.comments || []);

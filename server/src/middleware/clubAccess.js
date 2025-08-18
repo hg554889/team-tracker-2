@@ -4,6 +4,14 @@ import { User } from '../models/User.js';
 import { Roles } from '../utils/roles.js';
 
 /**
+ * 안전한 clubId 비교 함수
+ */
+function isSameClub(clubId1, clubId2) {
+  if (!clubId1 || !clubId2) return false;
+  return String(clubId1) === String(clubId2);
+}
+
+/**
  * 동아리별 접근 제어 미들웨어
  * ADMIN: 모든 동아리 접근 가능 (clubId 쿼리 파라미터로 필터링)
  * EXECUTIVE: 본인 동아리만 접근 가능
@@ -17,19 +25,23 @@ export function requireClubAccess(req, res, next) {
     return next();
   }
 
-  // EXECUTIVE는 본인 동아리만
-  if (role === Roles.EXECUTIVE) {
-    req.allowedClubIds = [userClubId];
-    return next();
+  // EXECUTIVE/LEADER/MEMBER는 본인 동아리만
+  if (!userClubId) {
+    return res.status(403).json({ 
+      error: 'Club not assigned',
+      details: 'User has no club assigned'
+    });
   }
 
-  // LEADER/MEMBER는 본인 동아리만
   req.allowedClubIds = [userClubId];
   next();
 }
 
 /**
  * 팀 접근 권한 확인
+ * ADMIN: 모든 팀 접근 가능
+ * EXECUTIVE: 본인 동아리의 모든 팀 접근 가능 (멤버십 불필요)
+ * LEADER/MEMBER: 본인이 속한 팀만 접근 가능
  */
 export async function validateTeamAccess(req, res, next) {
   try {
@@ -50,30 +62,40 @@ export async function validateTeamAccess(req, res, next) {
       return next();
     }
 
-    // EXECUTIVE는 본인 동아리 팀만
+    // EXECUTIVE는 본인 동아리 팀만 (멤버십 체크 불필요)
     if (role === Roles.EXECUTIVE) {
-      if (team.clubId !== userClubId) {
-        return res.status(403).json({ error: 'Access denied to this club' });
+      if (!isSameClub(team.clubId, userClubId)) {
+        return res.status(403).json({ 
+          error: 'Access denied to this club',
+          details: `Team club: ${team.clubId}, User club: ${userClubId}`
+        });
       }
-      return next();
+      return next(); // EXECUTIVE는 동아리 내 모든 팀 접근 가능
     }
 
     // LEADER/MEMBER는 본인이 속한 팀만
-    const isMember = team.members.some(m => String(m.user) === String(userId));
+    const isMember = team.members?.some(m => String(m.user) === String(userId));
     const isLeader = String(team.leader) === String(userId);
 
     if (!isMember && !isLeader) {
-      return res.status(403).json({ error: 'Access denied to this team' });
+      return res.status(403).json({ 
+        error: 'Access denied to this team',
+        details: `User ${userId} is not a member or leader of team ${teamId}`
+      });
     }
 
     next();
   } catch (error) {
+    console.error('validateTeamAccess error:', error);
     next(error);
   }
 }
 
 /**
  * 보고서 접근 권한 확인
+ * ADMIN: 모든 보고서 접근 가능
+ * EXECUTIVE: 본인 동아리 내 모든 보고서 접근 가능
+ * LEADER/MEMBER: 본인 팀의 보고서만 접근 가능
  */
 export async function validateReportAccess(req, res, next) {
   try {
@@ -94,9 +116,12 @@ export async function validateReportAccess(req, res, next) {
       return next();
     }
 
-    // 동아리 체크
-    if (report.clubId !== userClubId) {
-      return res.status(403).json({ error: 'Access denied to this club' });
+    // 동아리 체크 (타입 안전성 확보)
+    if (!isSameClub(report.clubId, userClubId)) {
+      return res.status(403).json({ 
+        error: 'Access denied to this club',
+        details: `Report club: ${report.clubId}, User club: ${userClubId}`
+      });
     }
 
     // EXECUTIVE는 본인 동아리 내 모든 보고서 접근 가능
@@ -106,21 +131,35 @@ export async function validateReportAccess(req, res, next) {
 
     // LEADER/MEMBER는 본인 팀의 보고서만
     const team = report.team;
-    const isMember = team.members.some(m => String(m.user) === String(userId));
+    if (!team) {
+      return res.status(403).json({ 
+        error: 'Team not found for this report',
+        details: `Report ${reportId} has no associated team`
+      });
+    }
+
+    const isMember = team.members?.some(m => String(m.user) === String(userId));
     const isLeader = String(team.leader) === String(userId);
 
     if (!isMember && !isLeader) {
-      return res.status(403).json({ error: 'Access denied to this report' });
+      return res.status(403).json({ 
+        error: 'Access denied to this report',
+        details: `User ${userId} is not a member or leader of team ${team._id}`
+      });
     }
 
     next();
   } catch (error) {
+    console.error('validateReportAccess error:', error);
     next(error);
   }
 }
 
 /**
  * 사용자 접근 권한 확인 (프로필 등)
+ * ADMIN: 모든 사용자 접근 가능
+ * EXECUTIVE: 본인 동아리 사용자만 접근 가능
+ * LEADER/MEMBER: 본인만 접근 가능
  */
 export async function validateUserAccess(req, res, next) {
   try {
@@ -148,16 +187,23 @@ export async function validateUserAccess(req, res, next) {
 
     // EXECUTIVE는 본인 동아리 사용자만
     if (role === Roles.EXECUTIVE) {
-      if (targetUser.clubId !== userClubId) {
-        return res.status(403).json({ error: 'Access denied to this user' });
+      if (!isSameClub(targetUser.clubId, userClubId)) {
+        return res.status(403).json({ 
+          error: 'Access denied to this user',
+          details: `Target user club: ${targetUser.clubId}, User club: ${userClubId}`
+        });
       }
       return next();
     }
 
-    // LEADER/MEMBER는 본인만 (이미 위에서 체크됨)
-    return res.status(403).json({ error: 'Access denied' });
+    // LEADER/MEMBER는 본인만
+    return res.status(403).json({ 
+      error: 'Access denied',
+      details: 'Only admins and executives can access other users'
+    });
 
   } catch (error) {
+    console.error('validateUserAccess error:', error);
     next(error);
   }
 }
