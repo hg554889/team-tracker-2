@@ -10,6 +10,7 @@ import { requireAuth } from './middleware/auth.js';
 import { enrichRole } from './middleware/enrichRole.js';
 import { requireApproval } from './middleware/approvalCheck.js';
 
+// ✅ 모든 라우터 import (clubSettings 추가)
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import teamRoutes from './routes/teams.js';
@@ -18,15 +19,18 @@ import dashboardRoutes from './routes/dashboard.js';
 import clubRoutes from './routes/clubs.js';
 import inviteRoutes from './routes/invites.js';
 import aiRoutes from './routes/ai.js';
+import approvalRoutes from './routes/approvals.js';
+import clubSettingsRoutes from './routes/clubSettings.js'; // ✅ 추가된 import
 
 const app = express();
 
 app.use(helmet());
-// 멀티 오리진 CORS (ENV: CLIENT_URL=URL1,URL2)
+
+// 멀티 오리진 CORS 설정
 app.use(cors({
-  origin(origin, cb){
-    if (!origin) return cb(null, true); // Postman 등
-    return env.CLIENT_URLS.includes(origin) ? cb(null,true) : cb(new Error('Not allowed by CORS'));
+  origin(origin, cb) {
+    if (!origin) return cb(null, true); // Postman 등 허용
+    return env.CLIENT_URLS.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'));
   },
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: 'Content-Type,Authorization',
@@ -36,37 +40,44 @@ app.options('*', cors());
 
 app.use(express.json());
 
-// 정적 업로드 제공
+// 정적 파일 제공
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-// Public
+// ========== 라우터 설정 ==========
+
+// Public routes (인증 불필요)
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/clubs', clubRoutes);
 app.use('/api/invites', inviteRoutes);
 
-// Protected (최신 역할 동기화)
+// Protected routes (인증 필요)
 app.use('/api', requireAuth, enrichRole);
 
-// Approval endpoints (no approval check needed)
-// app.use('/api/approvals', approvalRoutes);
+// 승인 관련 엔드포인트 (승인 확인 불필요)
+app.use('/api/approvals', approvalRoutes);
 
-// Other protected endpoints (require approval)
+// 승인이 필요한 다른 엔드포인트들
 app.use('/api', requireApproval);
 app.use('/api/users', userRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/club-settings', clubSettingsRoutes); // ✅ clubSettings 라우터 등록
 
 // Error handler
 app.use(errorHandler);
 
+// ========== 서버 시작 ==========
 connectDB().then(() => {
   app.listen(env.PORT, () => {
-    console.log(`[API] listening on :${env.PORT}`);
-    console.log('[CORS] allowed:', env.CLIENT_URLS.join(', '));
+    console.log(`[API] Server listening on port :${env.PORT}`);
+    console.log('[CORS] Allowed origins:', env.CLIENT_URLS.join(', '));
   });
+}).catch(error => {
+  console.error('[DB] Connection failed:', error);
+  process.exit(1);
 });

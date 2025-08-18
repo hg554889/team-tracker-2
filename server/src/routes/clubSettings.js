@@ -12,7 +12,7 @@ router.get('/:clubId', requireAuth, requireClubAccess, async (req, res, next) =>
     const { clubId } = req.params;
     const { role, clubId: userClubId } = req.user;
 
-    // 접근 권한 확인: ADMIN은 모든 동아리, EXECUTIVE는 자신의 동아리만
+    // ✅ 접근 권한 확인: ADMIN은 모든 동아리, EXECUTIVE는 자신의 동아리만
     if (role !== Roles.ADMIN && role !== Roles.EXECUTIVE) {
       return res.status(403).json({ error: 'InsufficientRole' });
     }
@@ -28,6 +28,7 @@ router.get('/:clubId', requireAuth, requireClubAccess, async (req, res, next) =>
       settings = await ClubSettings.create({
         clubId,
         name: `Club ${clubId}`,
+        description: `동아리 ${clubId} 설정`,
         settings: {
           reportSettings: {
             defaultDueDays: 7,
@@ -56,6 +57,7 @@ router.get('/:clubId', requireAuth, requireClubAccess, async (req, res, next) =>
 
     res.json(settings);
   } catch (e) { 
+    console.error('ClubSettings GET error:', e);
     next(e); 
   }
 });
@@ -66,7 +68,7 @@ router.put('/:clubId', requireAuth, requireClubAccess, async (req, res, next) =>
     const { clubId } = req.params;
     const { role, clubId: userClubId } = req.user;
 
-    // 설정 변경 권한 확인 (ADMIN 또는 해당 동아리의 EXECUTIVE)
+    // ✅ 설정 변경 권한 확인 (ADMIN 또는 해당 동아리의 EXECUTIVE)
     if (role !== Roles.ADMIN && (role !== Roles.EXECUTIVE || clubId !== userClubId)) {
       return res.status(403).json({ error: 'InsufficientPermissions' });
     }
@@ -84,6 +86,7 @@ router.put('/:clubId', requireAuth, requireClubAccess, async (req, res, next) =>
 
     res.json(settings);
   } catch (e) { 
+    console.error('ClubSettings PUT error:', e);
     next(e); 
   }
 });
@@ -94,7 +97,8 @@ router.get('/:clubId/stats', requireAuth, requireClubAccess, async (req, res, ne
     const { clubId } = req.params;
     const { role, clubId: userClubId } = req.user;
 
-    if (role !== Roles.ADMIN && clubId !== userClubId) {
+    // ✅ 통계 조회 권한 확인: ADMIN은 모든 동아리, EXECUTIVE는 자신의 동아리만
+    if (role !== Roles.ADMIN && (role !== Roles.EXECUTIVE || clubId !== userClubId)) {
       return res.status(403).json({ error: 'ClubAccessDenied' });
     }
 
@@ -117,12 +121,19 @@ router.get('/:clubId/stats', requireAuth, requireClubAccess, async (req, res, ne
       ? recentReports.reduce((sum, r) => sum + (r.progress || 0), 0) / recentReports.length
       : 0;
 
+    // 이번 주 활동한 팀 수 계산
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const recentActiveTeams = await Report.distinct('team', {
+      clubId,
+      createdAt: { $gte: oneWeekAgo }
+    });
+
     const stats = {
       totalTeams: teams,
       totalReports: reports,
       totalUsers: users,
       avgProgress: Math.round(avgProgress * 10) / 10,
-      activeTeamsThisWeek: 0, // TODO: 이번 주 활동한 팀 수 계산
+      activeTeamsThisWeek: recentActiveTeams.length,
       recentActivity: recentReports.slice(0, 10).map(r => ({
         type: 'report',
         title: `보고서 제출`,
@@ -133,6 +144,7 @@ router.get('/:clubId/stats', requireAuth, requireClubAccess, async (req, res, ne
 
     res.json(stats);
   } catch (e) { 
+    console.error('ClubSettings stats error:', e);
     next(e); 
   }
 });
