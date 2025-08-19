@@ -3,6 +3,7 @@ import { listTeams } from '../api/teams';
 import { createOrUpdateReport } from '../api/reports';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AIAssistant from '../components/AIAssistant';
+import CollaborativeEditor from '../components/CollaborativeEditor';
 
 export default function ReportForm(){
   const [teams, setTeams] = useState([]);
@@ -12,6 +13,8 @@ export default function ReportForm(){
   const [progress, setProgress] = useState(0);
   const [goals, setGoals] = useState('');
   const [issues, setIssues] = useState('');
+  const [reportId, setReportId] = useState(null);
+  const [useCollaborative, setUseCollaborative] = useState(false);
   const [dueAt, setDueAt] = useState('');
   const [done, setDone] = useState(false);
   const [showAI, setShowAI] = useState(false);
@@ -97,7 +100,8 @@ export default function ReportForm(){
         issues,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
       };
-      await createOrUpdateReport(payload);
+      const response = await createOrUpdateReport(payload);
+      setReportId(response.data._id);
       setDone(true);
       window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'보고서 저장 완료'} }));
       window.dispatchEvent(new CustomEvent('report:saved', { detail: { teamId } }));
@@ -245,40 +249,87 @@ export default function ReportForm(){
           </div>
         </label>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <input
+              type="checkbox"
+              checked={useCollaborative}
+              onChange={(e) => setUseCollaborative(e.target.checked)}
+            />
+            실시간 협업 편집 사용
+          </label>
+        </div>
+
         <label>
           목표 *
           <br/>
-          <textarea 
-            className="input" 
-            value={goals} 
-            onChange={e => setGoals(e.target.value)}
-            placeholder="이번 주 목표를 구체적으로 입력해주세요..."
-            style={{ 
-              marginTop: '4px', 
-              minHeight: '100px', 
-              resize: 'vertical' 
-            }}
-            required
-          />
-          <small style={{ color: '#666', fontSize: '12px' }}>
-            💡 AI 어시스턴트를 활용하면 팀과 프로젝트에 맞는 목표를 제안받을 수 있습니다.
-          </small>
+          {useCollaborative && reportId ? (
+            <div style={{ marginTop: '4px' }}>
+              <CollaborativeEditor
+                reportId={reportId}
+                initialContent={goals}
+                onChange={setGoals}
+                disabled={false}
+              />
+              <small style={{ color: '#666', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+                💡 팀원들과 실시간으로 협업하여 목표를 작성할 수 있습니다.
+              </small>
+            </div>
+          ) : (
+            <>
+              <textarea 
+                className="input" 
+                value={goals} 
+                onChange={e => setGoals(e.target.value)}
+                placeholder="이번 주 목표를 구체적으로 입력해주세요..."
+                style={{ 
+                  marginTop: '4px', 
+                  minHeight: '100px', 
+                  resize: 'vertical' 
+                }}
+                required
+              />
+              <small style={{ color: '#666', fontSize: '12px' }}>
+                💡 AI 어시스턴트를 활용하면 팀과 프로젝트에 맞는 목표를 제안받을 수 있습니다.
+                {!reportId && ' (보고서 저장 후 협업 편집 가능)'}
+              </small>
+            </>
+          )}
         </label>
 
         <label>
           이슈 및 고민사항
           <br/>
-          <textarea 
-            className="input" 
-            value={issues} 
-            onChange={e => setIssues(e.target.value)}
-            placeholder="현재 겪고 있는 이슈나 고민사항을 입력해주세요..."
-            style={{ 
-              marginTop: '4px', 
-              minHeight: '80px', 
-              resize: 'vertical' 
-            }}
-          />
+          {useCollaborative && reportId ? (
+            <div style={{ marginTop: '4px' }}>
+              <CollaborativeEditor
+                reportId={reportId}
+                initialContent={issues}
+                onChange={setIssues}
+                disabled={false}
+              />
+              <small style={{ color: '#666', fontSize: '12px', marginTop: '8px', display: 'block' }}>
+                💡 팀원들과 함께 이슈를 공유하고 해결방안을 논의할 수 있습니다.
+              </small>
+            </div>
+          ) : (
+            <>
+              <textarea 
+                className="input" 
+                value={issues} 
+                onChange={e => setIssues(e.target.value)}
+                placeholder="현재 겪고 있는 이슈나 고민사항을 입력해주세요..."
+                style={{ 
+                  marginTop: '4px', 
+                  minHeight: '80px', 
+                  resize: 'vertical' 
+                }}
+              />
+              <small style={{ color: '#666', fontSize: '12px' }}>
+                {!reportId && '보고서 저장 후 협업 편집을 활용할 수 있습니다.'}
+              </small>
+            </>
+          )}
         </label>
 
         <label>

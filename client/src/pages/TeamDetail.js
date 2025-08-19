@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
 import { getReportsByTeam } from '../api/reports';
 import TeamInsights from '../components/TeamInsights';
+import TeamChat from '../components/TeamChat';
+import ProjectPrediction from '../components/ProjectPrediction';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
@@ -42,6 +44,7 @@ export default function TeamDetail() {
 
   const [newUserId, setNewUserId] = useState('');
   const [reports, setReports] = useState([]);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // 팀 로드
   useEffect(() => {
@@ -222,7 +225,7 @@ export default function TeamDetail() {
 
       {/* 탭 */}
       <div className="card" style={{ display: 'flex', gap: 8, padding: '8px 12px', marginBottom: 16 }}>
-        {['overview', 'progress', 'members', 'reports'].map((t) => (
+        {['overview', 'progress', 'members', 'reports', 'prediction'].map((t) => (
           <button 
             key={t} 
             className={`btn ${tab === t ? 'primary' : ''}`} 
@@ -231,7 +234,8 @@ export default function TeamDetail() {
           >
             {t === 'overview' ? '📋 개요' : 
              t === 'progress' ? '📈 진행률' :
-             t === 'members' ? '👥 멤버' : '📊 보고서'}
+             t === 'members' ? '👥 멤버' : 
+             t === 'reports' ? '📊 보고서' : '🤖 AI 예측'}
           </button>
         ))}
       </div>
@@ -737,6 +741,17 @@ export default function TeamDetail() {
           )}
         </Section>
       )}
+
+      {/* AI 예측 탭 */}
+      {tab === 'prediction' && (
+        <ProjectPrediction teamId={id} />
+      )}
+      
+      <TeamChat 
+        teamId={id} 
+        isOpen={isChatOpen} 
+        onToggle={() => setIsChatOpen(!isChatOpen)} 
+      />
     </div>
   );
 }

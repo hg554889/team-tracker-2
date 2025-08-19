@@ -3,12 +3,14 @@ import helmet from 'helmet';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createServer } from 'http';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
 import { errorHandler } from './middleware/error.js';
 import { requireAuth } from './middleware/auth.js';
 import { enrichRole } from './middleware/enrichRole.js';
 import { requireApproval } from './middleware/approvalCheck.js';
+import { initializeSocket } from './services/socketService.js';
 
 // ✅ 모든 라우터 import (clubSettings, roleRequests 추가)
 import authRoutes from './routes/auth.js';
@@ -22,8 +24,10 @@ import aiRoutes from './routes/ai.js';
 import approvalRoutes from './routes/approvals.js';
 import roleRequestRoutes from './routes/roleRequests.js'; // ✅ 추가된 import
 import clubSettingsRoutes from './routes/clubSettings.js'; // ✅ 추가된 import
+import predictionRoutes from './routes/predictions.js';
 
 const app = express();
+const httpServer = createServer(app);
 
 app.use(helmet());
 
@@ -69,15 +73,19 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/role-requests', roleRequestRoutes); // ✅ roleRequests 라우터 등록
 app.use('/api/club-settings', clubSettingsRoutes); // ✅ clubSettings 라우터 등록
+app.use('/api/predictions', predictionRoutes);
 
 // Error handler
 app.use(errorHandler);
 
 // ========== 서버 시작 ==========
 connectDB().then(() => {
-  app.listen(env.PORT, () => {
+  initializeSocket(httpServer);
+  
+  httpServer.listen(env.PORT, () => {
     console.log(`[API] Server listening on port :${env.PORT}`);
     console.log('[CORS] Allowed origins:', env.CLIENT_URLS.join(', '));
+    console.log('[Socket] Socket.io initialized');
   });
 }).catch(error => {
   console.error('[DB] Connection failed:', error);

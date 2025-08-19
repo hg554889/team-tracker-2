@@ -1,0 +1,176 @@
+.collaborative-editor {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  position: relative;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  border-radius: 8px 8px 0 0;
+}
+
+.collaborators-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.connection-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.connection-status.connected {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.connection-status.disconnected {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+.collaborators-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+}
+
+.collaborator-name {
+  padding: 2px 6px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.save-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-btn:hover:not(:disabled) {
+  background-color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.save-btn.saving {
+  background-color: var(--warning-color);
+  color: #000;
+}
+
+.editor-container {
+  position: relative;
+}
+
+.collaborative-textarea {
+  width: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  padding: 12px;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none;
+  border-radius: 0;
+}
+
+.collaborative-textarea:focus {
+  box-shadow: inset 0 0 0 2px var(--primary-color);
+}
+
+.collaborative-textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background-color: var(--bg-tertiary);
+}
+
+.cursor-indicator {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background-color: var(--primary-color);
+  border-radius: 1px;
+  z-index: 10;
+  pointer-events: none;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.editor-footer {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-tertiary);
+  border-radius: 0 0 8px 8px;
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+/* 실시간 변경 사항 하이라이트 */
+.collaborative-textarea.has-changes {
+  border-left: 4px solid var(--warning-color);
+}
+
+.collaborative-editor.collaborative-mode {
+  border-color: var(--primary-color);
+}
+
+.collaborative-editor.collaborative-mode .editor-header {
+  background: linear-gradient(90deg, var(--primary-color), var(--info-color));
+  color: white;
+}
+
+.collaborative-editor.collaborative-mode .collaborators-info {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.collaborative-editor.collaborative-mode .connection-status {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .editor-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .collaborators-info {
+    flex-wrap: wrap;
+  }
+  
+  .collaborative-textarea {
+    min-height: 150px;
+  }
+}

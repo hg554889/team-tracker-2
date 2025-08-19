@@ -1,0 +1,342 @@
+.prediction-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.prediction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.prediction-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.prediction-tabs {
+  display: flex;
+  gap: 8px;
+  background-color: var(--bg-tertiary);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.tab-btn:hover:not(.active) {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Loading State */
+.prediction-loading {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.prediction-error {
+  text-align: center;
+  padding: 20px;
+  color: var(--danger-color);
+}
+
+.btn-retry {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+/* Prediction Content */
+.prediction-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.completion-date h4,
+.confidence-meter h4 {
+  margin: 0 0 12px 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.date-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 8px 0 4px 0;
+}
+
+.remaining-time {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+.confidence-bar {
+  position: relative;
+  background-color: var(--bg-tertiary);
+  height: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.confidence-fill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.confidence-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 12px;
+  z-index: 2;
+}
+
+/* Stats */
+.prediction-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  padding: 16px;
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid var(--border-color);
+}
+
+.stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-value.positive {
+  color: var(--success-color);
+}
+
+.stat-value.negative {
+  color: var(--danger-color);
+}
+
+/* Message and Recommendations */
+.prediction-message {
+  padding: 16px;
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  border-left: 4px solid var(--info-color);
+  margin-bottom: 24px;
+}
+
+.prediction-message p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.recommendations {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid var(--warning-color);
+}
+
+.recommendations h4 {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.recommendations ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.recommendations li {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+/* No Prediction */
+.no-prediction {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+/* Analysis Content */
+.chart-container {
+  margin-bottom: 24px;
+}
+
+.chart-container h4 {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.analysis-insights {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid var(--success-color);
+}
+
+.analysis-insights h4 {
+  margin: 0 0 16px 0;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.insight-item {
+  text-align: center;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.insight-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.insight-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insights-list {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.insights-list li {
+  margin-bottom: 8px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.no-analysis {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+/* Footer */
+.prediction-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.prediction-footer small {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .prediction-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .prediction-tabs {
+    align-self: center;
+  }
+  
+  .prediction-summary {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .prediction-stats {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+}
