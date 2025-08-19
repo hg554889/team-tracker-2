@@ -591,7 +591,7 @@ export default function TeamDetail() {
                       <td>
                         {m.id !== user?._id && (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            {m.role !== 'LEADER' && (
+                            {/* {m.role !== 'LEADER' && (
                               <button 
                                 className="btn" 
                                 onClick={() => promote(m.id)}
@@ -608,7 +608,7 @@ export default function TeamDetail() {
                               >
                                 👤 멤버로
                               </button>
-                            )}
+                            )} */}
                             <button 
                               className="btn" 
                               onClick={() => remove(m.id)}

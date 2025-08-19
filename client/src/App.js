@@ -20,6 +20,7 @@ import ReportsList from './pages/ReportsList';
 import ReportDetail from './pages/ReportDetail';
 import ApprovalPending from './pages/ApprovalPending';
 import ApprovalRequests from './pages/ApprovalRequests';
+import InquiryManagement from './pages/InquiryManagement';
 
 export default function App(){
   const { pathname } = useLocation();
@@ -41,6 +42,7 @@ export default function App(){
         <Route path="/invite/:code" element={<ProtectedRoute><AcceptInvite /></ProtectedRoute>} />
         <Route path="/approval-pending" element={<ProtectedRoute><ApprovalPending /></ProtectedRoute>} />
         <Route path="/admin/approvals" element={<ProtectedRoute><RoleGuard roles={[Roles.ADMIN, Roles.EXECUTIVE]}><ApprovalRequests /></RoleGuard></ProtectedRoute>} />
+        <Route path="/admin/inquiries" element={<ProtectedRoute><RoleGuard roles={[Roles.ADMIN, Roles.EXECUTIVE]}><InquiryManagement /></RoleGuard></ProtectedRoute>} />
         <Route path="/reports" element={<ReportsList />} />
         <Route path="/reports/:id" element={<ReportDetail />} />
         <Route path="*" element={<Navigate to="/" />} />
