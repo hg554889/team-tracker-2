@@ -8,9 +8,11 @@ import { StatusCodes } from 'http-status-codes';
 function isTeamMember(team, userId) {
   if (!team || !team.members || !userId) return false;
   
-  return team.members.some(member => {
-    const memberId = member.userId || member._id || member;
-    return memberId && memberId.toString() === userId.toString();
+  return team.members.some(m => {
+    // m.user 가 ObjectId 또는 populated document 모두 지원
+    const memberUserId =
+      m.user && m.user._id ? m.user._id.toString() : m.user?.toString?.();
+    return memberUserId === userId.toString();
   });
 }
 
@@ -34,7 +36,7 @@ router.get('/completion/:teamId', async (req, res) => {
     }
 
     // 팀 멤버이거나 관리자인지 확인
-    const isMember = isTeamMember(team, user._id);
+    const isMember = isTeamMember(team, user.id);
     
     if (!isMember && user.role !== 'ADMIN' && user.role !== 'EXECUTIVE') {
       console.log('Access denied for user:', user._id);
@@ -76,7 +78,7 @@ router.get('/progress-analysis/:teamId', async (req, res) => {
       });
     }
 
-    const isMember = isTeamMember(team, user._id);
+    const isMember = isTeamMember(team, user.id);
     
     if (!isMember && user.role !== 'ADMIN' && user.role !== 'EXECUTIVE') {
       return res.status(StatusCodes.FORBIDDEN).json({
@@ -85,7 +87,7 @@ router.get('/progress-analysis/:teamId', async (req, res) => {
     }
 
     // 진행률 분석을 위한 보고서 데이터 가져오기
-    const reports = await Report.find({ teamId })
+    const reports = await Report.find({ team: teamId })
       .sort({ weekOf: 1 })
       .select('weekOf progress goals issues createdAt');
 

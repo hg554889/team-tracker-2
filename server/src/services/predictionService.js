@@ -12,7 +12,7 @@ export class PredictionService {
       }
 
       console.log('PredictionService: Finding reports for team');
-      const reports = await Report.find({ teamId })
+      const reports = await Report.find({ team: teamId })
         .sort({ weekOf: -1 })
         .limit(10);
 

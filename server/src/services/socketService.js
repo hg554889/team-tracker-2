@@ -31,7 +31,7 @@ export class SocketService {
         }
 
         const decoded = jwt.verify(token, env.JWT_SECRET);
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = await User.findById(decoded.id).select('-password');
         if (!user) {
           return next(new Error('User not found'));
         }
@@ -56,9 +56,13 @@ export class SocketService {
             return;
           }
 
-          const isMember = team.members.some(member => 
-            member.userId.toString() === socket.user._id.toString()
-          );
+          const isMember = team.members.some(member => {
+            // member.user 가 populate 되지 않은 경우(ObjectId)와 된 경우 모두 처리
+            const memberUserId = member.user && member.user._id
+              ? member.user._id.toString()
+              : member.user?.toString?.();
+            return memberUserId === socket.user._id.toString();
+          });
           
           if (!isMember && socket.user.role !== 'ADMIN') {
             socket.emit('error', { message: 'Access denied' });
