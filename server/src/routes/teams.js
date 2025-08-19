@@ -113,25 +113,81 @@ router.put('/:id', requireAuth, validateTeamAccess, async (req, res) => {
   res.json(team);
 });
 
-router.post('/:id/members', requireAuth, validateTeamAccess, validate(teamMemberSchema), async (req, res) => {
-  const { id } = req.params; 
-  const { userId, role } = req.body;
-  const team = await Team.findById(id);
-  if (!team) return res.status(404).json({ error: 'NotFound' });
-  
-  const requesterId = req.user.id;
-  const isLeader = team.leader.toString() === requesterId;
-  const isExecutiveOrAdmin = [Roles.EXECUTIVE, Roles.ADMIN].includes(req.user.role);
-  
-  if (!isLeader && !isExecutiveOrAdmin) {
-    return res.status(403).json({ error: 'Forbidden' });
+router.post('/:id/members', requireAuth, validateTeamAccess, validate(teamMemberSchema), async (req, res, next) => {
+  try {
+    const { id } = req.params; 
+    const { email, role } = req.body;
+    
+    const team = await Team.findById(id);
+    if (!team) return res.status(404).json({ error: 'TeamNotFound' });
+    
+    const requesterId = req.user.id;
+    const isLeader = team.leader.toString() === requesterId;
+    const isExecutiveOrAdmin = [Roles.EXECUTIVE, Roles.ADMIN].includes(req.user.role);
+    
+    if (!isLeader && !isExecutiveOrAdmin) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    // 이메일로 사용자 찾기
+    const { User } = await import('../models/User.js');
+    const targetUser = await User.findOne({ email: email.toLowerCase() });
+    
+    if (!targetUser) {
+      return res.status(404).json({ 
+        error: 'UserNotFound', 
+        message: '해당 이메일을 가진 사용자를 찾을 수 없습니다.' 
+      });
+    }
+
+    if (!targetUser.isApproved) {
+      return res.status(400).json({ 
+        error: 'UserNotApproved', 
+        message: '아직 승인되지 않은 사용자입니다.' 
+      });
+    }
+
+    // 동일한 동아리 체크 (ADMIN 제외)
+    if (req.user.role !== Roles.ADMIN && targetUser.clubId !== req.user.clubId) {
+      return res.status(400).json({ 
+        error: 'DifferentClub', 
+        message: '같은 동아리의 사용자만 초대할 수 있습니다.' 
+      });
+    }
+    
+    // 이미 멤버인지 확인
+    const exists = team.members.find((m) => m.user?.toString() === targetUser._id.toString());
+    const isLeaderAlready = team.leader.toString() === targetUser._id.toString();
+    
+    if (isLeaderAlready) {
+      return res.status(400).json({ 
+        error: 'AlreadyLeader', 
+        message: '이미 팀 리더입니다.' 
+      });
+    }
+    
+    if (!exists) {
+      team.members.push({ user: targetUser._id, role: role ?? 'MEMBER' });
+    } else if (role) {
+      exists.role = role;
+    } else {
+      return res.status(400).json({ 
+        error: 'AlreadyMember', 
+        message: '이미 팀 멤버입니다.' 
+      });
+    }
+    
+    await team.save();
+    
+    // 응답할 때는 사용자 정보도 함께 populate
+    const updatedTeam = await Team.findById(id)
+      .populate('leader', 'username email')
+      .populate('members.user', 'username email');
+    
+    res.json(updatedTeam);
+  } catch (e) { 
+    next(e); 
   }
-  
-  const exists = team.members.find((m) => m.user?.toString() === userId);
-  if (!exists) team.members.push({ user: userId, role: role ?? 'MEMBER' });
-  else if (role) exists.role = role;
-  await team.save();
-  res.json(team);
 });
 
 router.delete('/:id/members/:userId', requireAuth, validateTeamAccess, async (req, res) => {

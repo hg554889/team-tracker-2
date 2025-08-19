@@ -111,9 +111,9 @@ const ProjectPrediction = ({ teamId }) => {
                       className="confidence-fill"
                       style={{ 
                         width: `${prediction.confidence}%`,
-                        backgroundColor: prediction.confidence >= 70 ? 'var(--success-color)' : 
-                                       prediction.confidence >= 40 ? 'var(--warning-color)' : 
-                                       'var(--danger-color)'
+                        backgroundColor: prediction.confidence >= 70 ? 'var(--success)' : 
+                                       prediction.confidence >= 40 ? 'var(--warning)' : 
+                                       'var(--danger)'
                       }}
                     />
                     <span className="confidence-text">{prediction.confidence}%</span>
@@ -177,23 +177,24 @@ const ProjectPrediction = ({ teamId }) => {
                 <h4>📈 진행률 추이</h4>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={analysis.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis 
                       dataKey="week" 
-                      stroke="var(--text-secondary)"
+                      stroke="var(--text-muted)"
                       fontSize={12}
                     />
                     <YAxis 
-                      stroke="var(--text-secondary)"
+                      stroke="var(--text-muted)"
                       fontSize={12}
                       domain={[0, 100]}
                     />
                     <Tooltip 
                       contentStyle={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        color: 'var(--text-primary)'
+                        backgroundColor: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-lg)',
+                        color: 'var(--text)',
+                        boxShadow: 'var(--shadow)'
                       }}
                       formatter={(value) => [`${value}%`, '진행률']}
                     />
@@ -201,10 +202,10 @@ const ProjectPrediction = ({ teamId }) => {
                     <Line 
                       type="monotone" 
                       dataKey="progress" 
-                      stroke="var(--primary-color)" 
+                      stroke="var(--primary)" 
                       strokeWidth={3}
-                      dot={{ fill: 'var(--primary-color)', strokeWidth: 2, r: 6 }}
-                      activeDot={{ r: 8, fill: 'var(--primary-color)' }}
+                      dot={{ fill: 'var(--primary)', strokeWidth: 2, r: 6 }}
+                      activeDot={{ r: 8, fill: 'var(--primary)' }}
                       name="진행률"
                     />
                   </LineChart>

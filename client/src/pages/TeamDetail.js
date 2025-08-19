@@ -42,7 +42,7 @@ export default function TeamDetail() {
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
 
-  const [newUserId, setNewUserId] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
   const [reports, setReports] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -149,10 +149,27 @@ export default function TeamDetail() {
   }
 
   async function add() {
-    await addMember(team._id, { userId: newUserId, role: 'MEMBER' });
-    setNewUserId('');
-    const { data } = await getTeam(id);
-    setTeam(data || null);
+    if (!newUserEmail.trim()) {
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: '이메일을 입력해주세요.' } 
+      }));
+      return;
+    }
+
+    try {
+      await addMember(team._id, { email: newUserEmail.trim(), role: 'MEMBER' });
+      setNewUserEmail('');
+      const { data } = await getTeam(id);
+      setTeam(data || null);
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: '멤버가 성공적으로 추가되었습니다.' } 
+      }));
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || '멤버 추가에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: errorMessage } 
+      }));
+    }
   }
 
   async function promote(u) {
@@ -497,12 +514,14 @@ export default function TeamDetail() {
             }}>
               <input
                 className="input"
-                placeholder="추가할 사용자 ID(ObjectId)"
-                value={newUserId}
-                onChange={(e) => setNewUserId(e.target.value)}
+                type="email"
+                placeholder="추가할 사용자의 이메일 주소"
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
                 style={{ flex: 1 }}
+                onKeyPress={(e) => e.key === 'Enter' && add()}
               />
-              <button className="btn" onClick={add} disabled={!newUserId}>👤 추가</button>
+              <button className="btn" onClick={add} disabled={!newUserEmail.trim()}>👤 추가</button>
               <button className="btn" onClick={inviteLink}>🔗 초대 링크</button>
             </div>
           )}

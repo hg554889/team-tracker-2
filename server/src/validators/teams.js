@@ -14,5 +14,8 @@ export const teamCreateSchema = z.object({
 
 export const teamMemberSchema = z.object({
   params: z.object({ id: z.string().min(1) }),
-  body: z.object({ userId: z.string().min(1), role: z.enum(['LEADER','MEMBER']).optional() })
+  body: z.object({ 
+    email: z.string().email('유효한 이메일 주소를 입력해주세요.'), 
+    role: z.enum(['LEADER','MEMBER']).optional() 
+  })
 });
