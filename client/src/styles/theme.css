@@ -12,6 +12,16 @@
   --warning-color: #ffc107;
   --danger-color: #dc3545;
   --info-color: #17a2b8;
+
+  /* Bridge tokens for legacy classes (index.css 등) */
+  --bg: var(--bg-primary);
+  --surface: var(--bg-secondary);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+  --border: var(--border-color);
+  --primary: var(--primary-color);
+  --primary-press: color-mix(in oklab, var(--primary-color) 85%, black);
+  --radius: 16px;
 }
 
 [data-theme="dark"] {
@@ -28,6 +38,16 @@
   --warning-color: #ffd43b;
   --danger-color: #ff6b6b;
   --info-color: #22b8cf;
+
+  /* Bridge tokens for legacy classes */
+  --bg: var(--bg-primary);
+  --surface: var(--bg-secondary);
+  --text: var(--text-primary);
+  --muted: var(--text-secondary);
+  --border: var(--border-color);
+  --primary: var(--primary-color);
+  --primary-press: color-mix(in oklab, var(--primary-color) 85%, black);
+  --radius: 16px;
 }
 
 body {
