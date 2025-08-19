@@ -41,7 +41,7 @@ export function requireClubAccess(req, res, next) {
  * 팀 접근 권한 확인
  * ADMIN: 모든 팀 접근 가능
  * EXECUTIVE: 본인 동아리의 모든 팀 접근 가능 (멤버십 불필요)
- * LEADER/MEMBER: 본인이 속한 팀만 접근 가능
+ * LEADER/MEMBER: 모든 팀 정보 조회 가능 (단, 전용 기능은 본인 팀만)
  */
 export async function validateTeamAccess(req, res, next) {
   try {
@@ -73,13 +73,21 @@ export async function validateTeamAccess(req, res, next) {
       return next(); // EXECUTIVE는 동아리 내 모든 팀 접근 가능
     }
 
-    // LEADER/MEMBER는 본인이 속한 팀만
+    // LEADER/MEMBER는 모든 팀 정보 조회 가능 (GET 요청만)
+    // 단, 수정/삭제/멤버 관리는 본인 팀만 가능
     const isMember = team.members?.some(m => String(m.user) === String(userId));
     const isLeader = String(team.leader) === String(userId);
-
+    
+    // GET 요청(조회)는 모든 팀에 대해 허용
+    if (req.method === 'GET') {
+      req.isTeamMember = isMember || isLeader;
+      return next();
+    }
+    
+    // POST/PUT/DELETE 등 수정 요청은 본인 팀만 허용
     if (!isMember && !isLeader) {
       return res.status(403).json({ 
-        error: 'Access denied to this team',
+        error: 'Access denied to modify this team',
         details: `User ${userId} is not a member or leader of team ${teamId}`
       });
     }
@@ -95,7 +103,7 @@ export async function validateTeamAccess(req, res, next) {
  * 보고서 접근 권한 확인
  * ADMIN: 모든 보고서 접근 가능
  * EXECUTIVE: 본인 동아리 내 모든 보고서 접근 가능
- * LEADER/MEMBER: 본인 팀의 보고서만 접근 가능
+ * LEADER/MEMBER: 모든 보고서 조회 가능 (단, 수정/삭제는 본인 팀만)
  */
 export async function validateReportAccess(req, res, next) {
   try {
@@ -116,20 +124,19 @@ export async function validateReportAccess(req, res, next) {
       return next();
     }
 
-    // 동아리 체크 (타입 안전성 확보)
-    if (!isSameClub(report.clubId, userClubId)) {
-      return res.status(403).json({ 
-        error: 'Access denied to this club',
-        details: `Report club: ${report.clubId}, User club: ${userClubId}`
-      });
-    }
-
     // EXECUTIVE는 본인 동아리 내 모든 보고서 접근 가능
     if (role === Roles.EXECUTIVE) {
+      if (!isSameClub(report.clubId, userClubId)) {
+        return res.status(403).json({ 
+          error: 'Access denied to this club',
+          details: `Report club: ${report.clubId}, User club: ${userClubId}`
+        });
+      }
       return next();
     }
 
-    // LEADER/MEMBER는 본인 팀의 보고서만
+    // LEADER/MEMBER는 모든 보고서 조회 가능 (GET 요청만)
+    // 단, 수정/삭제는 본인 팀만 가능
     const team = report.team;
     if (!team) {
       return res.status(403).json({ 
@@ -140,10 +147,17 @@ export async function validateReportAccess(req, res, next) {
 
     const isMember = team.members?.some(m => String(m.user) === String(userId));
     const isLeader = String(team.leader) === String(userId);
-
+    
+    // GET 요청(조회)는 모든 보고서에 대해 허용
+    if (req.method === 'GET') {
+      req.isReportTeamMember = isMember || isLeader;
+      return next();
+    }
+    
+    // POST/PUT/DELETE 등 수정 요청은 본인 팀만 허용
     if (!isMember && !isLeader) {
       return res.status(403).json({ 
-        error: 'Access denied to this report',
+        error: 'Access denied to modify this report',
         details: `User ${userId} is not a member or leader of team ${team._id}`
       });
     }

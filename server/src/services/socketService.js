@@ -64,8 +64,11 @@ export class SocketService {
             return memberUserId === socket.user._id.toString();
           });
           
-          if (!isMember && socket.user.role !== 'ADMIN') {
-            socket.emit('error', { message: 'Access denied' });
+          const isLeader = team.leader.toString() === socket.user._id.toString();
+          const isExecutiveInSameClub = socket.user.role === 'EXECUTIVE' && team.clubId === socket.user.clubId;
+          
+          if (!isMember && !isLeader && !isExecutiveInSameClub && socket.user.role !== 'ADMIN') {
+            socket.emit('error', { message: 'Access denied to team chat' });
             return;
           }
 

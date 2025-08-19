@@ -96,6 +96,7 @@ export default function TeamDetail() {
     [team, user]
   );
   const canEdit = isLeader || user?.role === 'ADMIN';
+  const canUseExclusiveFeatures = isMember || isLeader || user?.role === 'ADMIN' || user?.role === 'EXECUTIVE';
 
   const memberList = useMemo(
     () =>
@@ -206,7 +207,7 @@ export default function TeamDetail() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {isMember && (
+          {canUseExclusiveFeatures && (
             <button
               className="btn"
               onClick={() => nav('/reports/new', { state: { teamId: team._id, teamName: team.name } })}
@@ -214,12 +215,12 @@ export default function TeamDetail() {
               📝 보고서 작성
             </button>
           )}
-          {isLeader && <button className="btn" onClick={inviteLink}>👥 초대 링크</button>}
+          {canEdit && <button className="btn" onClick={inviteLink}>👥 초대 링크</button>}
         </div>
       </div>
 
       {/* AI 인사이트 - 상단에 표시 */}
-      {(isMember || isLeader || user?.role === 'ADMIN') && (
+      {canUseExclusiveFeatures && (
         <TeamInsights teamId={team._id} teamName={team.name} />
       )}
 
@@ -483,8 +484,8 @@ export default function TeamDetail() {
 
       {/* 멤버 탭 */}
       {tab === 'members' && (
-        <Section title="멤버 관리" right={isLeader ? <span style={{ color: '#666', fontSize: '14px' }}>리더 전용</span> : null}>
-          {isLeader && (
+        <Section title="멤버 관리" right={canEdit ? <span style={{ color: '#666', fontSize: '14px' }}>리더 전용</span> : null}>
+          {canEdit && (
             <div style={{ 
               display: 'flex', 
               gap: 8, 
@@ -513,7 +514,7 @@ export default function TeamDetail() {
                   <th>이름</th>
                   <th>역할</th>
                   <th>가입일</th>
-                  {isLeader && <th style={{ width: 200 }}>관리</th>}
+                  {canEdit && <th style={{ width: 200 }}>관리</th>}
                 </tr>
               </thead>
               <tbody>
@@ -567,7 +568,7 @@ export default function TeamDetail() {
                       {/* TODO: 실제 가입일 데이터가 있다면 표시 */}
                       -
                     </td>
-                    {isLeader && (
+                    {canEdit && (
                       <td>
                         {m.id !== user?._id && (
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -623,7 +624,7 @@ export default function TeamDetail() {
               <Link className="btn" to={`/reports?teamId=${team._id}`}>
                 📊 전체 보기
               </Link>
-              {isMember && (
+              {canUseExclusiveFeatures && (
                 <Link 
                   className="btn primary" 
                   to="/reports/new" 
@@ -643,7 +644,7 @@ export default function TeamDetail() {
             }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
               <p>아직 작성된 보고서가 없습니다.</p>
-              {isMember && (
+              {canUseExclusiveFeatures && (
                 <Link 
                   className="btn primary" 
                   to="/reports/new" 
@@ -747,11 +748,13 @@ export default function TeamDetail() {
         <ProjectPrediction teamId={id} />
       )}
       
-      <TeamChat 
-        teamId={id} 
-        isOpen={isChatOpen} 
-        onToggle={() => setIsChatOpen(!isChatOpen)} 
-      />
+      {canUseExclusiveFeatures && (
+        <TeamChat 
+          teamId={id} 
+          isOpen={isChatOpen} 
+          onToggle={() => setIsChatOpen(!isChatOpen)} 
+        />
+      )}
     </div>
   );
 }

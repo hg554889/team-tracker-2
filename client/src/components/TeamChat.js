@@ -56,15 +56,29 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
         }
       });
 
+      socket.on('error', (data) => {
+        if (data.message === 'Access denied to team chat') {
+          window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { type: 'error', msg: '이 팀 채팅에 참여할 권한이 없습니다.' } 
+          }));
+          onToggle(); // 채팅창 닫기
+        } else {
+          window.dispatchEvent(new CustomEvent('toast', { 
+            detail: { type: 'error', msg: data.message || '채팅 오류가 발생했습니다.' } 
+          }));
+        }
+      });
+
       return () => {
         socket.off('recent-messages');
         socket.off('new-message');
         socket.off('user-joined');
         socket.off('user-left');
         socket.off('user-typing');
+        socket.off('error');
       };
     }
-  }, [socket, teamId, isOpen]);
+  }, [socket, teamId, isOpen, onToggle]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
