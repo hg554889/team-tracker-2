@@ -33,7 +33,7 @@ router.put('/me', requireAuth, async (req, res) => {
 });
 
 // 목록: ADMIN은 전 동아리(필터 가능), EXECUTIVE는 자기 동아리만, 검색(q)
-router.get('/', requireAuth, requireClubAccess, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   const { role, clubId: userClubId } = req.user;
   const { clubId, q } = req.query;
 
@@ -46,6 +46,13 @@ router.get('/', requireAuth, requireClubAccess, async (req, res) => {
     }
     // ADMIN은 clubId 필터 없으면 모든 동아리 조회 가능
   } else if (role === Roles.EXECUTIVE) {
+    // EXECUTIVE는 본인 동아리가 있을 때만 조회 가능
+    if (!userClubId) {
+      return res.status(403).json({ 
+        error: 'Club not assigned',
+        message: '동아리가 할당되지 않았습니다. 프로필에서 동아리를 선택해주세요.'
+      });
+    }
     query.clubId = userClubId; // 자신의 동아리만
   } else {
     return res.status(403).json({ error: 'Forbidden' });

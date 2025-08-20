@@ -48,6 +48,19 @@ export default function Teams(){
       
       const { data } = await listTeams(requestParams);
       setTeams(data.items || []);
+    } catch (error) {
+      console.error('Failed to fetch teams:', error);
+      const errorMsg = error?.response?.data?.message || '팀 목록을 불러오는데 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: errorMsg } 
+      }));
+      
+      // 403 에러(동아리 미할당)인 경우 특별 처리
+      if (error?.response?.status === 403) {
+        window.dispatchEvent(new CustomEvent('toast', { 
+          detail: { type: 'warning', msg: '프로필에서 동아리를 선택해주세요.' } 
+        }));
+      }
     } finally{
       setLoading(false);
     }

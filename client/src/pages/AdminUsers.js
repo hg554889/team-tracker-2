@@ -14,15 +14,42 @@ export default function AdminUsers(){
   const [q,setQ]=useState('');
   const [activeTab, setActiveTab] = useState('users');
 
-  useEffect(()=>{ (async()=>{ const { data } = await listClubs(); setClubs(data); setClubId(data[0]?.key||''); })(); },[]);
+  useEffect(()=>{ (async()=>{ const { data } = await listClubs(); setClubs(data); setClubId(''); })(); },[]);
   useEffect(()=>{ if (currentClub) setClubId(currentClub); }, [currentClub]);
-  useEffect(()=>{ (async()=>{ if (clubId) { const { data } = await listUsers({ clubId, q }); setUsers(data); } })(); },[clubId, q]);
+  useEffect(()=>{ 
+    (async()=>{ 
+      try {
+        // ADMIN은 clubId가 없어도 전체 사용자 조회 가능
+        const params = clubId ? { clubId, q } : { q };
+        const { data } = await listUsers(params); 
+        setUsers(data); 
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        const errorMsg = error?.response?.data?.message || '사용자 목록을 불러오는데 실패했습니다.';
+        window.dispatchEvent(new CustomEvent('toast', { 
+          detail: { type: 'error', msg: errorMsg } 
+        }));
+        setUsers([]);
+      }
+    })(); 
+  },[clubId, q]);
 
   async function save(u, idx){
-    const role = document.getElementById(`role-${idx}`).value;
-    const club = document.getElementById(`club-${idx}`).value;
-    const { data } = await adminUpdateUser(u._id, { role, clubId: club });
-    setUsers(prev=> prev.map(x=> x._id===u._id? data: x));
+    try {
+      const role = document.getElementById(`role-${idx}`).value;
+      const club = document.getElementById(`club-${idx}`).value;
+      const { data } = await adminUpdateUser(u._id, { role, clubId: club });
+      setUsers(prev=> prev.map(x=> x._id===u._id? data: x));
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: '사용자 정보가 업데이트되었습니다.' } 
+      }));
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      const errorMsg = error?.response?.data?.message || '사용자 정보 업데이트에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: errorMsg } 
+      }));
+    }
   }
 
   const tabs = [
@@ -38,6 +65,7 @@ export default function AdminUsers(){
           <div style={{ display:'flex', gap:12 }}>
             <span>동아리</span>
             <select className="input" style={{ maxWidth:240 }} value={clubId} onChange={e=>setClubId(e.target.value)}>
+              <option value="">전체 동아리</option>
               {clubs.map(c=> <option key={c.key} value={c.key}>{c.name}</option>)}
             </select>
             <input className="input" placeholder="이름/이메일 검색" value={q} onChange={e=>setQ(e.target.value)} />
@@ -54,6 +82,7 @@ export default function AdminUsers(){
                   <td>{u.email}</td>
                   <td>
                     <select id={`club-${idx}`} defaultValue={u.clubId||''} className="input">
+                      <option value="">동아리 없음</option>
                       {clubs.map(c=> <option key={c.key} value={c.key}>{c.name}</option>)}
                     </select>
                   </td>
@@ -76,7 +105,7 @@ export default function AdminUsers(){
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>ADMIN · 관리 대시보드</h1>
-        <ClubSwitcher />
+        {/* <ClubSwitcher /> */}
       </div>
 
       {/* 탭 메뉴 */}

@@ -27,8 +27,10 @@ export function requireClubAccess(req, res, next) {
 
   // EXECUTIVE/LEADER/MEMBER는 본인 동아리만
   if (!userClubId) {
+    console.log('Club access denied - User has no club assigned:', { userId: req.user.id, role: req.user.role, clubId: userClubId });
     return res.status(403).json({ 
       error: 'Club not assigned',
+      message: '동아리가 할당되지 않았습니다. 프로필에서 동아리를 선택해주세요.',
       details: 'User has no club assigned'
     });
   }

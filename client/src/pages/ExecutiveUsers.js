@@ -67,7 +67,7 @@ export default function ExecutiveUsers(){
 
   const tabs = [
     { id: 'users', label: '👥 구성원 관리', component: renderUserManagement },
-    { id: 'approvals', label: '✅ 승인 관리', component: () => <ApprovalManagement /> },
+    // { id: 'approvals', label: '✅ 승인 관리', component: () => <ApprovalManagement /> },
     { id: 'settings', label: '⚙️ 동아리 설정', component: () => <ClubSettings /> },
     { id: 'stats', label: '📊 통계', component: () => <ClubStats /> }
   ];
@@ -195,7 +195,7 @@ export default function ExecutiveUsers(){
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>EXECUTIVE · {getClubDisplayName(user?.clubId)} 관리</h1>
-        {user?.role === 'ADMIN' && <ClubSwitcher />}
+        {/* {user?.role === 'ADMIN' && <ClubSwitcher />} */}
       </div>
 
       {/* 탭 메뉴 */}

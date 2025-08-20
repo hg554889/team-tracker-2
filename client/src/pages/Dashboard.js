@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import client from '../api/client';
-import AIWidget from '../components/dashboard/AIWidget';
-import NotificationPanel from '../components/dashboard/NotificationPanel';
-import RoleBasedKPI from '../components/dashboard/RoleBasedKPI';
-import ImprovedTeamHealth from '../components/dashboard/ImprovedTeamHealth';
-import ImprovedDueSoon from '../components/dashboard/ImprovedDueSoon';
-import ActivityFeed from '../components/dashboard/ActivityFeed';
+import AdminDashboard from '../components/dashboard/AdminDashboard';
+import ExecutiveDashboard from '../components/dashboard/ExecutiveDashboard';
+import LeaderDashboard from '../components/dashboard/LeaderDashboard';
+import MemberDashboard from '../components/dashboard/MemberDashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { useClub } from '../contexts/ClubContext';
 
@@ -53,26 +51,6 @@ export default function Dashboard(){
     };
   }, [currentClub, user?.role]);
 
-  const getScopeTitle = () => {
-    if (!summary?.scope) return '';
-    switch (summary.scope) {
-      case 'GLOBAL': return '전체 시스템';
-      case 'CLUB': return '우리 동아리';
-      case 'MY': return '내 활동';
-      default: return '';
-    }
-  };
-
-  const getRoleDisplayName = () => {
-    switch (user?.role) {
-      case 'ADMIN': return '관리자';
-      case 'EXECUTIVE': return '임원';
-      case 'LEADER': return '팀장';
-      case 'MEMBER': return '멤버';
-      default: return '사용자';
-    }
-  };
-
   if (loading) {
     return (
       <div className="dashboard-container">
@@ -90,107 +68,37 @@ export default function Dashboard(){
     );
   }
 
+  // 권한별 대시보드 렌더링
+  const renderDashboard = () => {
+    const commonProps = {
+      user,
+      summary,
+      loading,
+      currentClub
+    };
+
+    switch (user?.role) {
+      case 'ADMIN':
+        return <AdminDashboard {...commonProps} />;
+      case 'EXECUTIVE':
+        return <ExecutiveDashboard {...commonProps} />;
+      case 'LEADER':
+        return <LeaderDashboard {...commonProps} />;
+      case 'MEMBER':
+        return <MemberDashboard {...commonProps} />;
+      default:
+        return <MemberDashboard {...commonProps} />;
+    }
+  };
+
   return (
     <div className="dashboard-container">
-      <div style={{ 
-        padding: '24px',
-        maxWidth: '1400px',
-        margin: '0 auto'
-      }}>
-        {/* 헤더 섹션 */}
-        <div style={{ marginBottom: '24px' }}>
-          <h1 style={{ 
-            margin: '0 0 8px 0', 
-            fontSize: '28px', 
-            color: '#2c3e50',
-            fontWeight: '700'
-          }}>
-            👋 안녕하세요, {user?.username}님!
-          </h1>
-          <p style={{ 
-            margin: 0, 
-            fontSize: '16px', 
-            color: '#636e72'
-          }}>
-            {getRoleDisplayName()} · {getScopeTitle()}
-          </p>
-        </div>
-
-        {/* 알림 패널 */}
-        {summary?.notifications && summary.notifications.length > 0 && (
-          <NotificationPanel notifications={summary.notifications} />
-        )}
-
-        {/* 상단 섹션: KPI + AI */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: user?.role === 'ADMIN' || user?.role === 'EXECUTIVE' ? '2fr 1fr' : '1fr 1fr',
-          gap: '24px',
-          marginBottom: '24px'
-        }}>
-          <RoleBasedKPI 
-            userRole={user?.role}
-            kpi={summary?.kpi || {}}
-            additionalStats={summary?.additionalStats || {}}
-          />
-          <AIWidget user={user} />
-        </div>
-
-        {/* 중간 섹션: 팀 현황 + 마감 예정 */}
-        <div style={{ 
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '24px',
-          marginBottom: '24px'
-        }}>
-          <ImprovedTeamHealth 
-            myTeamsProgress={summary?.myTeamsProgress || []}
-            userRole={user?.role}
-            loading={loading}
-          />
-          
-          <ImprovedDueSoon 
-            dueSoon={summary?.dueSoon || []}
-            userRole={user?.role}
-            loading={loading}
-          />
-        </div>
-
-        {/* 하단 섹션: 활동 피드 */}
-        <div>
-          <ActivityFeed userId={user?._id} />
-        </div>
-      </div>
-
+      {renderDashboard()}
+      
       <style jsx>{`
         .dashboard-container {
           background-color: #f8f9fa;
           min-height: 100vh;
-        }
-
-        .card {
-          background-color: white;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          padding: 20px;
-          border: 1px solid #e9ecef;
-        }
-
-        @media (max-width: 1200px) {
-          .dashboard-container > div {
-            padding: 16px;
-            maxWidth: '100%';
-          }
-        }
-
-        @media (max-width: 768px) {
-          .dashboard-container > div > div {
-            grid-template-columns: 1fr !important;
-          }
-          
-          .card {
-            padding: 16px;
-          }
         }
       `}</style>
     </div>
