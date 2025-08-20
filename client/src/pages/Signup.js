@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signup } from '../api/auth';
 import { useAuth } from '../contexts/AuthContext';
+import './Auth.css';
 
 export default function Signup(){
   const [email,setEmail] = useState('');
@@ -31,16 +32,77 @@ export default function Signup(){
   }
 
   return (
-    <div className="container" style={{ maxWidth:420 }}>
-      <h1>회원가입</h1>
-      <form onSubmit={submit} className="card" style={{ display:'grid', gap:12 }}>
-        <label>이메일<br/><input className="input" value={email} onChange={e=>setEmail(e.target.value)} /></label>
-        <label>사용자명<br/><input className="input" value={username} onChange={e=>setUsername(e.target.value)} /></label>
-        <label>학번<br/><input className="input" type="number" value={studentId} onChange={e=>setStudentId(e.target.value)} placeholder="예: 20241234" /></label>
-        <label>비밀번호<br/><input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} /></label>
-        <button className="btn primary">가입</button>
-        <div>이미 계정이 있나요? <Link to="/login">로그인</Link></div>
-      </form>
+    <div className="auth-container">
+      <div className="auth-background">
+        <div className="auth-card">
+          <div className="auth-header">
+            <div className="auth-logo">
+              <h1>Team Tracker</h1>
+            </div>
+            <h2>회원가입</h2>
+            <p>새 계정을 만들어 Team Tracker를 시작하세요</p>
+          </div>
+          
+          <form onSubmit={submit} className="auth-form">
+            <div className="form-group">
+              <label>이메일</label>
+              <input 
+                className="auth-input" 
+                type="email"
+                value={email} 
+                onChange={e=>setEmail(e.target.value)}
+                placeholder="이메일을 입력하세요"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>사용자명</label>
+              <input 
+                className="auth-input" 
+                type="text"
+                value={username} 
+                onChange={e=>setUsername(e.target.value)}
+                placeholder="사용자명을 입력하세요"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>학번</label>
+              <input 
+                className="auth-input" 
+                type="number"
+                value={studentId} 
+                onChange={e=>setStudentId(e.target.value)}
+                placeholder="예: 20241234"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>비밀번호</label>
+              <input 
+                className="auth-input" 
+                type="password" 
+                value={password} 
+                onChange={e=>setPassword(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
+                required
+              />
+            </div>
+            
+            <button className="auth-button" type="submit">
+              가입하기
+            </button>
+            
+            <div className="auth-footer">
+              <p>이미 계정이 있나요? <Link to="/login" className="auth-link">로그인</Link></p>
+              <p><Link to="/" className="auth-link">← 홈으로 돌아가기</Link></p>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

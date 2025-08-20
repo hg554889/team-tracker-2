@@ -112,7 +112,7 @@ export default function Landing() {
       </main>
 
       <footer className="landing-footer">
-        <p>&copy; 2024 Team Tracker. All rights reserved.</p>
+        <p>&copy; 2025 Team Tracker. All rights reserved.</p>
       </footer>
     </div>
   );
