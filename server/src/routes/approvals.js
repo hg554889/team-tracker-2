@@ -11,6 +11,8 @@ router.get('/pending', requireAuth, async (req, res, next) => {
   try {
     const { role, clubId } = req.user;
     
+    console.log('[DEBUG] Approvals API - User role:', role, 'clubId:', clubId);
+    
     if (!([Roles.ADMIN, Roles.EXECUTIVE].includes(role))) {
       return res.status(403).json({ error: 'Forbidden' });
     }
@@ -21,9 +23,14 @@ router.get('/pending', requireAuth, async (req, res, next) => {
       filter.clubId = clubId;
     }
     
+    console.log('[DEBUG] Filter:', JSON.stringify(filter));
+    
     const pendingUsers = await User.find(filter)
       .select('email username studentId clubId createdAt')
       .sort({ createdAt: -1 });
+    
+    console.log('[DEBUG] Found pending users:', pendingUsers.length);
+    pendingUsers.forEach(u => console.log(`  - ${u.username} (${u.email}) - clubId: ${u.clubId}`));
     
     res.json({ users: pendingUsers });
   } catch (e) { 

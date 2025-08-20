@@ -14,10 +14,15 @@ export default function ApprovalManagement() {
   const loadData = async () => {
     setLoading(true);
     try {
+      console.log('[CLIENT] Loading approval data...');
+      
       const [approvalResponse, roleRequestResponse] = await Promise.all([
         client.get('/approvals/pending'),
         client.get('/role-requests')
       ]);
+      
+      console.log('[CLIENT] Approval response:', approvalResponse.data);
+      console.log('[CLIENT] Role request response:', roleRequestResponse.data);
       
       setPendingUsers(approvalResponse.data.users || []);
       setRoleRequests(roleRequestResponse.data.requests || []);

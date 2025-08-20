@@ -18,10 +18,10 @@ export default function ExecutiveUsers(){
 
   useEffect(() => {
     loadUsers();
-  }, [q, currentClub]);
+  }, [q, user?.clubId]);
 
   const loadUsers = async () => {
-    if (!user?.clubId && !currentClub) {
+    if (!user?.clubId) {
       setError('동아리가 설정되지 않았습니다.');
       setLoading(false);
       return;
@@ -32,10 +32,8 @@ export default function ExecutiveUsers(){
       const params = {};
       if (q) params.q = q;
       
-      // ADMIN인 경우 currentClub을 사용, 아니면 user.clubId 사용
-      if (user?.role === 'ADMIN' && currentClub) {
-        params.clubId = currentClub;
-      } else if (user?.clubId) {
+      // EXECUTIVE는 항상 본인의 clubId 사용
+      if (user?.clubId) {
         params.clubId = user.clubId;
       }
       
@@ -67,7 +65,7 @@ export default function ExecutiveUsers(){
 
   const tabs = [
     { id: 'users', label: '👥 구성원 관리', component: renderUserManagement },
-    // { id: 'approvals', label: '✅ 승인 관리', component: () => <ApprovalManagement /> },
+    { id: 'approvals', label: '✅ 승인 관리', component: () => <ApprovalManagement /> },
     { id: 'settings', label: '⚙️ 동아리 설정', component: () => <ClubSettings /> },
     { id: 'stats', label: '📊 통계', component: () => <ClubStats /> }
   ];
@@ -195,7 +193,6 @@ export default function ExecutiveUsers(){
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1>EXECUTIVE · {getClubDisplayName(user?.clubId)} 관리</h1>
-        {/* {user?.role === 'ADMIN' && <ClubSwitcher />} */}
       </div>
 
       {/* 탭 메뉴 */}

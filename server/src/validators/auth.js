@@ -5,7 +5,8 @@ export const signupSchema = z.object({
     email: z.string().email(),
     username: z.string().min(2).max(30),
     password: z.string().min(8),
-    studentId: z.number().int().positive()
+    studentId: z.number().int().positive(),
+    clubId: z.string().min(1)
   })
 });
 

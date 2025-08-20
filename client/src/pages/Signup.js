@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { signup } from '../api/auth';
+import { listClubs } from '../api/clubs';
 import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
@@ -9,23 +10,37 @@ export default function Signup(){
   const [username,setUsername] = useState('');
   const [password,setPassword] = useState('');
   const [studentId,setStudentId] = useState('');
+  const [clubId,setClubId] = useState('');
+  const [clubs,setClubs] = useState([]);
   const { setUser } = useAuth();
   const nav = useNavigate();
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await listClubs();
+        setClubs(data);
+      } catch (error) {
+        console.error('Failed to load clubs:', error);
+      }
+    })();
+  }, []);
+
   async function submit(e){
     e.preventDefault();
+    
+    if (!clubId) {
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'동아리를 선택해주세요.'} }));
+      return;
+    }
+    
     try {
-      const res = await signup({ email, username, password, studentId: parseInt(studentId) });
+      const res = await signup({ email, username, password, studentId: parseInt(studentId), clubId });
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
       
-      if (res.data.user.approvalStatus === 'pending') {
-        nav('/approval-pending');
-        window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'info', msg:'가입 요청이 전송되었습니다. 관리자 승인을 기다려주세요.'} }));
-      } else {
-        nav('/select-club');
-        window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'가입 성공'} }));
-      }
+      nav('/approval-pending');
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'info', msg:'가입 요청이 전송되었습니다. 동아리 관리자의 승인을 기다려주세요.'} }));
     } catch (err) {
       if (err.response?.status === 409) nav('/login');
     }
@@ -78,6 +93,23 @@ export default function Signup(){
                 placeholder="예: 20241234"
                 required
               />
+            </div>
+            
+            <div className="form-group">
+              <label>동아리</label>
+              <select 
+                className="auth-input" 
+                value={clubId}
+                onChange={e=>setClubId(e.target.value)}
+                required
+              >
+                <option value="">동아리를 선택하세요</option>
+                {clubs.map(club => (
+                  <option key={club.key} value={club.key}>
+                    {club.name}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="form-group">

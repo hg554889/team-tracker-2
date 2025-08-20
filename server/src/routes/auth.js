@@ -10,7 +10,7 @@ const router = Router();
 // 회원가입 시
 router.post('/signup', validate(signupSchema), async (req, res, next) => {
   try {
-    const { email, username, password, studentId } = req.body;
+    const { email, username, password, studentId, clubId } = req.body;
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'EmailInUse' });
     
@@ -22,6 +22,7 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
       username, 
       password, 
       studentId,
+      clubId,
       role: 'MEMBER',
       isApproved: false,
       approvalStatus: 'pending'
