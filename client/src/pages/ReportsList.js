@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { listReports } from '../api/reports';
 import { listTeams } from '../api/teams';
 import { useSearchParams, Link } from 'react-router-dom';
+import './ReportsList.css';
 
 export default function ReportsList(){
   const [params, setParams] = useSearchParams();
@@ -41,64 +42,116 @@ export default function ReportsList(){
   const maxPage = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="container">
-      <h1>보고서 목록</h1>
+    <div className="reports-list-container">
+      <div className="reports-header">
+        <h1>📈 보고서 목록</h1>
+        <p>팀별 보고서를 확인하고 진행상황을 추적하세요</p>
+      </div>
 
-      {/* 필터 */}
-      <div className="card" style={{ display:'grid', gap:12, marginBottom:16 }}>
-        <div className="grid cols-3">
-          <label>팀<br/>
-            <select className="input" value={teamId} onChange={e=>updateQuery({ teamId: e.target.value || undefined, page: 1 })}>
-              <option value="">전체</option>
+      <div className="filters-section">
+        <h3>🔍 필터</h3>
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label>팀 선택</label>
+            <select className="filter-input" value={teamId} onChange={e=>updateQuery({ teamId: e.target.value || undefined, page: 1 })}>
+              <option value="">전체 팀</option>
               {teams.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
             </select>
-          </label>
-          <label>시작일(이후)<br/><input className="input" type="date" value={from} onChange={e=>updateQuery({ from: e.target.value || undefined, page: 1 })} /></label>
-          <label>종료일(이전)<br/><input className="input" type="date" value={to} onChange={e=>updateQuery({ to: e.target.value || undefined, page: 1 })} /></label>
+          </div>
+          <div className="filter-group">
+            <label>시작일 (이후)</label>
+            <input className="filter-input" type="date" value={from} onChange={e=>updateQuery({ from: e.target.value || undefined, page: 1 })} />
+          </div>
+          <div className="filter-group">
+            <label>종료일 (이전)</label>
+            <input className="filter-input" type="date" value={to} onChange={e=>updateQuery({ to: e.target.value || undefined, page: 1 })} />
+          </div>
         </div>
       </div>
 
-      {/* 목록 */}
-      <div className="card">
+      <div className="reports-content">
         {loading ? (
-          <div className="skeleton" style={{ height: 160 }} />
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>보고서를 불러오는 중...</p>
+          </div>
         ) : (rows.items||[]).length === 0 ? (
-          <div>보고서가 없습니다.</div>
+          <div className="empty-state">
+            <div className="empty-icon">📄</div>
+            <h3>보고서가 없습니다</h3>
+            <p>아직 작성된 보고서가 없거나 필터 조건에 맞는 보고서가 없습니다.</p>
+          </div>
         ) : (
-          <table className="table">
-             <thead>
-                <tr>
-                  <th>보고서</th>
-                  <th>팀</th>
-                  <th>주차</th>
-                  <th>진행률</th>
-                  <th>마감일</th>
-                </tr>
-              </thead>
-            <tbody>
-               {rows.items.map(r => (
-               <tr key={r._id}>
-                <td>
-                   {/* ✅ 보고서 상세로 이동 */}
-                   <Link to={`/reports/${r._id}`}>{new Date(r.weekOf).toLocaleDateString()} 보고서</Link>
-                </td>
-                <td>{teamMap[r.team] || r.team}</td>
-                <td>{new Date(r.weekOf).toLocaleDateString()}</td>
-                <td>{r.progress}%</td>
-                <td>{r.dueAt ? new Date(r.dueAt).toLocaleDateString() : '-'}</td>
-               </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="reports-grid">
+            {rows.items.map(r => (
+              <Link key={r._id} to={`/reports/${r._id}`} className="report-card">
+                <div className="report-card-header">
+                  <div className="report-title">
+                    <h4>{new Date(r.weekOf).toLocaleDateString()} 보고서</h4>
+                    <span className="team-name">{teamMap[r.team] || r.team}</span>
+                  </div>
+                  <div className="report-progress">
+                    <div className="progress-circle">
+                      <svg className="progress-ring" width="50" height="50">
+                        <circle
+                          className="progress-ring-circle"
+                          stroke={r.progress >= 80 ? '#10b981' : r.progress >= 50 ? '#f59e0b' : '#ef4444'}
+                          strokeWidth="4"
+                          fill="transparent"
+                          r="21"
+                          cx="25"
+                          cy="25"
+                          strokeDasharray={`${2 * Math.PI * 21}`}
+                          strokeDashoffset={`${2 * Math.PI * 21 * (1 - r.progress / 100)}`}
+                        />
+                        <text x="25" y="30" textAnchor="middle" fontSize="12" fontWeight="600" fill={r.progress >= 80 ? '#10b981' : r.progress >= 50 ? '#f59e0b' : '#ef4444'}>
+                          {r.progress}%
+                        </text>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <div className="report-card-content">
+                  <div className="report-meta">
+                    <div className="meta-item">
+                      <span className="meta-label">주차</span>
+                      <span className="meta-value">{new Date(r.weekOf).toLocaleDateString()}</span>
+                    </div>
+                    {r.dueAt && (
+                      <div className="meta-item">
+                        <span className="meta-label">마감일</span>
+                        <span className="meta-value">{new Date(r.dueAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* 페이지네이션 */}
-      <div style={{ display:'flex', gap:8, marginTop:12 }}>
-        <button className="btn" disabled={page<=1} onClick={()=>updateQuery({ page: page-1 })}>이전</button>
-        <div style={{ alignSelf:'center', color:'var(--muted)' }}>{page} / {maxPage}</div>
-        <button className="btn" disabled={page>=maxPage} onClick={()=>updateQuery({ page: page+1 })}>다음</button>
-      </div>
+      {total > limit && (
+        <div className="pagination">
+          <button 
+            className="pagination-btn" 
+            disabled={page<=1} 
+            onClick={()=>updateQuery({ page: page-1 })}
+          >
+            ← 이전
+          </button>
+          <div className="pagination-info">
+            {page} / {maxPage} 페이지 (총 {total}개)
+          </div>
+          <button 
+            className="pagination-btn" 
+            disabled={page>=maxPage} 
+            onClick={()=>updateQuery({ page: page+1 })}
+          >
+            다음 →
+          </button>
+        </div>
+      )}
     </div>
   );
 }

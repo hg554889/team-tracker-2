@@ -4,6 +4,7 @@ import { createOrUpdateReport } from '../api/reports';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AIAssistant from '../components/AIAssistant';
 import CollaborativeEditor from '../components/CollaborativeEditor';
+import './ReportForm.css';
 
 export default function ReportForm(){
   const [teams, setTeams] = useState([]);
@@ -112,7 +113,15 @@ export default function ReportForm(){
     }
   }
 
-  if (done) return <div className="container"><div className="card">보고서가 저장되었습니다.</div></div>
+  if (done) return (
+    <div className="report-container">
+      <div className="report-success">
+        <div className="success-icon">✅</div>
+        <h2>보고서가 저장되었습니다!</h2>
+        <p>팀 페이지로 이동하여 결과를 확인하세요.</p>
+      </div>
+    </div>
+  );
 
   // 팀 타입과 프로젝트 카테고리 추론
   const getTeamType = (teamName, teamDescription) => {
@@ -145,221 +154,208 @@ export default function ReportForm(){
   };
 
   return (
-    <div className="container" style={{ maxWidth: 800 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <h1>보고서 작성</h1>
+    <div className="report-container">
+      <div className="report-header">
+        <div className="report-title">
+          <h1>📊 보고서 작성</h1>
+          <p>팀의 진행상황과 목표를 체계적으로 기록하세요</p>
+        </div>
         <button
           onClick={() => setShowAI(!showAI)}
-          className="btn"
-          style={{
-            background: showAI ? '#667eea' : '#f0f0f0',
-            color: showAI ? 'white' : '#666',
-            border: 'none',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
+          className={`ai-toggle-btn ${showAI ? 'active' : ''}`}
         >
-          🤖 AI 어시스턴트 {showAI ? '숨기기' : '보기'}
+          <span className="ai-icon">🤖</span>
+          AI 어시스턴트 {showAI ? '숨기기' : '보기'}
         </button>
       </div>
 
       {/* AI 어시스턴트 */}
       {showAI && selectedTeam && (
-        <AIAssistant
-          teamId={teamId}
-          currentProgress={progress}
-          teamType={getTeamType(selectedTeam.name, selectedTeam.description)}
-          projectCategory={getProjectCategory(selectedTeam.name, selectedTeam.description)}
-          onTemplateGenerated={handleTemplateGenerated}
-          onProgressPredicted={handleProgressPredicted}
-          onGoalsSuggested={handleGoalsSuggested}
-        />
+        <div className="ai-assistant-container">
+          <AIAssistant
+            teamId={teamId}
+            currentProgress={progress}
+            teamType={getTeamType(selectedTeam.name, selectedTeam.description)}
+            projectCategory={getProjectCategory(selectedTeam.name, selectedTeam.description)}
+            onTemplateGenerated={handleTemplateGenerated}
+            onProgressPredicted={handleProgressPredicted}
+            onGoalsSuggested={handleGoalsSuggested}
+          />
+        </div>
       )}
 
-      <form onSubmit={submit} className="card" style={{ display:'grid', gap:16 }}>
-        <label>
-          팀 *
-          <br/>
-          <select 
-            className="input" 
-            value={teamId} 
-            onChange={handleTeamChange} 
-            required
-            style={{ marginTop: '4px' }}
-          >
-            <option value="">선택</option>
-            {teams.map(t => (
-              <option key={t._id} value={t._id}>
-                {t.name}
-                {t.description && ` - ${t.description.substring(0, 30)}${t.description.length > 30 ? '...' : ''}`}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          주차 시작일 *
-          <br/>
-          <input 
-            className="input" 
-            type="date" 
-            value={weekOf} 
-            onChange={e => setWeekOf(e.target.value)} 
-            required 
-            style={{ marginTop: '4px' }}
-          />
-        </label>
-
-        <label>
-          완료율(%) *
-          <br/>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
-            <input 
-              className="input" 
-              type="number" 
-              min={0} 
-              max={100} 
-              value={progress} 
-              onChange={e => setProgress(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <div style={{ 
-              minWidth: '120px', 
-              height: '8px', 
-              backgroundColor: '#f0f0f0', 
-              borderRadius: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                width: `${progress}%`, 
-                height: '100%', 
-                backgroundColor: progress >= 80 ? '#10b981' : progress >= 50 ? '#f59e0b' : '#ef4444',
-                transition: 'all 0.3s ease'
-              }} />
-            </div>
-            <span style={{ 
-              fontSize: '14px', 
-              fontWeight: '600',
-              color: progress >= 80 ? '#10b981' : progress >= 50 ? '#f59e0b' : '#ef4444'
-            }}>
-              {progress}%
-            </span>
+      <form onSubmit={submit} className="report-form">
+        <div className="form-section">
+          <h3>📋 기본 정보</h3>
+          <div className="form-group">
+            <label>팀 선택 *</label>
+            <select 
+              className="form-input" 
+              value={teamId} 
+              onChange={handleTeamChange} 
+              required
+            >
+              <option value="">팀을 선택하세요</option>
+              {teams.map(t => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                  {t.description && ` - ${t.description.substring(0, 30)}${t.description.length > 30 ? '...' : ''}`}
+                </option>
+              ))}
+            </select>
           </div>
-        </label>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <div className="form-group">
+            <label>주차 시작일 *</label>
+            <input 
+              className="form-input" 
+              type="date" 
+              value={weekOf} 
+              onChange={e => setWeekOf(e.target.value)} 
+              required
+            />
+          </div>
+        </div>
+
+        <div className="form-section">
+          <h3>📈 진행 현황</h3>
+          <div className="form-group">
+            <label>완료율 (%) *</label>
+            <div className="progress-input-container">
+              <input 
+                className="form-input progress-input" 
+                type="number" 
+                min={0} 
+                max={100} 
+                value={progress} 
+                onChange={e => setProgress(e.target.value)}
+                placeholder="0-100"
+              />
+              <div className="progress-bar">
+                <div 
+                  className={`progress-fill ${progress >= 80 ? 'high' : progress >= 50 ? 'medium' : 'low'}`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className={`progress-text ${progress >= 80 ? 'high' : progress >= 50 ? 'medium' : 'low'}`}>
+                {progress}%
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="collaboration-toggle">
+          <label className="checkbox-label">
             <input
               type="checkbox"
               checked={useCollaborative}
               onChange={(e) => setUseCollaborative(e.target.checked)}
             />
-            실시간 협업 편집 사용
+            <span className="checkmark"></span>
+            <span className="label-text">
+              <strong>실시간 협업 편집 사용</strong>
+              <small>팀원들과 함께 보고서를 작성할 수 있습니다</small>
+            </span>
           </label>
         </div>
 
-        <label>
-          목표 *
-          <br/>
-          {useCollaborative && reportId ? (
-            <div style={{ marginTop: '4px' }}>
-              <CollaborativeEditor
-                reportId={reportId}
-                initialContent={goals}
-                onChange={setGoals}
-                disabled={false}
-              />
-              <small style={{ color: '#666', fontSize: '12px', marginTop: '8px', display: 'block' }}>
-                💡 팀원들과 실시간으로 협업하여 목표를 작성할 수 있습니다.
-              </small>
-            </div>
-          ) : (
-            <>
-              <textarea 
-                className="input" 
-                value={goals} 
-                onChange={e => setGoals(e.target.value)}
-                placeholder="이번 주 목표를 구체적으로 입력해주세요..."
-                style={{ 
-                  marginTop: '4px', 
-                  minHeight: '100px', 
-                  resize: 'vertical' 
-                }}
-                required
-              />
-              <small style={{ color: '#666', fontSize: '12px' }}>
-                💡 AI 어시스턴트를 활용하면 팀과 프로젝트에 맞는 목표를 제안받을 수 있습니다.
-                {!reportId && ' (보고서 저장 후 협업 편집 가능)'}
-              </small>
-            </>
-          )}
-        </label>
+        <div className="form-section">
+          <h3>🎯 목표 및 계획</h3>
+          <div className="form-group">
+            <label>목표 *</label>
+            {useCollaborative && reportId ? (
+              <div>
+                <CollaborativeEditor
+                  reportId={reportId}
+                  initialContent={goals}
+                  onChange={setGoals}
+                  disabled={false}
+                />
+                <div className="form-hint">
+                  💡 팀원들과 실시간으로 협업하여 목표를 작성할 수 있습니다.
+                </div>
+              </div>
+            ) : (
+              <>
+                <textarea 
+                  className="form-textarea" 
+                  value={goals} 
+                  onChange={e => setGoals(e.target.value)}
+                  placeholder="이번 주 목표를 구체적으로 입력해주세요...
+Ex) 
+• 사용자 인증 기능 개발 완료
+• 데이터베이스 설계 및 구현
+• UI/UX 디자인 시안 3개 제작"
+                  required
+                />
+                <div className="form-hint">
+                  💡 AI 어시스턴트를 활용하면 팀과 프로젝트에 맞는 목표를 제안받을 수 있습니다.
+                  {!reportId && ' (보고서 저장 후 협업 편집 가능)'}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
-        <label>
-          이슈 및 고민사항
-          <br/>
-          {useCollaborative && reportId ? (
-            <div style={{ marginTop: '4px' }}>
-              <CollaborativeEditor
-                reportId={reportId}
-                initialContent={issues}
-                onChange={setIssues}
-                disabled={false}
-              />
-              <small style={{ color: '#666', fontSize: '12px', marginTop: '8px', display: 'block' }}>
-                💡 팀원들과 함께 이슈를 공유하고 해결방안을 논의할 수 있습니다.
-              </small>
-            </div>
-          ) : (
-            <>
-              <textarea 
-                className="input" 
-                value={issues} 
-                onChange={e => setIssues(e.target.value)}
-                placeholder="현재 겪고 있는 이슈나 고민사항을 입력해주세요..."
-                style={{ 
-                  marginTop: '4px', 
-                  minHeight: '80px', 
-                  resize: 'vertical' 
-                }}
-              />
-              <small style={{ color: '#666', fontSize: '12px' }}>
-                {!reportId && '보고서 저장 후 협업 편집을 활용할 수 있습니다.'}
-              </small>
-            </>
-          )}
-        </label>
+        <div className="form-section">
+          <h3>⚠️ 이슈 및 고민사항</h3>
+          <div className="form-group">
+            <label>이슈 및 고민사항</label>
+            {useCollaborative && reportId ? (
+              <div>
+                <CollaborativeEditor
+                  reportId={reportId}
+                  initialContent={issues}
+                  onChange={setIssues}
+                  disabled={false}
+                />
+                <div className="form-hint">
+                  💡 팀원들과 함께 이슈를 공유하고 해결방안을 논의할 수 있습니다.
+                </div>
+              </div>
+            ) : (
+              <>
+                <textarea 
+                  className="form-textarea issues-textarea" 
+                  value={issues} 
+                  onChange={e => setIssues(e.target.value)}
+                  placeholder="현재 겪고 있는 이슈나 고민사항을 입력해주세요...
+Ex)
+• API 응답 속도 개선 필요
+• 팀원 간 커뮤니케이션 이슈
+• 기술적 난이도로 인한 일정 지연 우려"
+                />
+                <div className="form-hint">
+                  {!reportId && '보고서 저장 후 협업 편집을 활용할 수 있습니다.'}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
 
-        <label>
-          마감일
-          <br/>
-          <input 
-            className="input" 
-            type="datetime-local" 
-            value={dueAt} 
-            onChange={e => setDueAt(e.target.value)}
-            style={{ marginTop: '4px' }}
-          />
-        </label>
+        <div className="form-section">
+          <h3>⏰ 일정 관리</h3>
+          <div className="form-group">
+            <label>마감일</label>
+            <input 
+              className="form-input" 
+              type="datetime-local" 
+              value={dueAt} 
+              onChange={e => setDueAt(e.target.value)}
+            />
+          </div>
+        </div>
 
-        <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          marginTop: '8px' 
-        }}>
+        <div className="form-actions">
           <button 
             type="button"
             onClick={() => nav('/teams')}
-            className="btn"
-            style={{ flex: 1 }}
+            className="btn-cancel"
           >
             취소
           </button>
           <button 
-            className="btn primary" 
-            style={{ flex: 2 }}
+            className="btn-submit"
             disabled={!teamId || !goals.trim()}
           >
             💾 보고서 저장
@@ -368,15 +364,7 @@ export default function ReportForm(){
       </form>
 
       {!selectedTeam && teamId && (
-        <div style={{ 
-          marginTop: '16px', 
-          padding: '12px', 
-          backgroundColor: '#fef3c7', 
-          border: '1px solid #f59e0b',
-          borderRadius: '6px',
-          fontSize: '14px',
-          color: '#92400e'
-        }}>
+        <div className="warning-message">
           ⚠️ 팀을 선택하면 AI 어시스턴트를 사용할 수 있습니다.
         </div>
       )}
