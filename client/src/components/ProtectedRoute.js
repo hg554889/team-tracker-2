@@ -7,9 +7,9 @@ export default function ProtectedRoute({ children }){
   const loc = useLocation();
   const token = localStorage.getItem('token');
   
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
   if (loading) return <div className="container">로딩...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   
   // Check approval status
   if (user.approvalStatus === 'pending' && loc.pathname !== '/approval-pending') {
@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children }){
   
   if (user.approvalStatus === 'rejected') {
     localStorage.removeItem('token');
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
   
   // Only check clubId for approved users

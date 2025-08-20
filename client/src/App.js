@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import SelectClub from './pages/SelectClub';
@@ -21,10 +22,18 @@ import ReportDetail from './pages/ReportDetail';
 import ApprovalPending from './pages/ApprovalPending';
 import ApprovalRequests from './pages/ApprovalRequests';
 import InquiryManagement from './pages/InquiryManagement';
+import { useAuth } from './contexts/AuthContext';
 
 export default function App(){
   const { pathname } = useLocation();
-  const hideNav = pathname === '/login' || pathname === '/signup';
+  const { user, loading } = useAuth();
+  const token = localStorage.getItem('token');
+  
+  // Show landing page for unauthenticated users
+  const shouldShowLanding = !loading && !token && pathname === '/';
+  
+  const hideNav = pathname === '/login' || pathname === '/signup' || shouldShowLanding;
+  
   return (
     <>
       {!hideNav && <Navbar />}
@@ -32,7 +41,7 @@ export default function App(){
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/select-club" element={<ProtectedRoute><SelectClub /></ProtectedRoute>} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/" element={shouldShowLanding ? <Landing /> : <ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><RoleGuard roles={[Roles.ADMIN]}><AdminUsers /></RoleGuard></ProtectedRoute>} />
         <Route path="/executive/users" element={<ProtectedRoute><RoleGuard roles={[Roles.EXECUTIVE]}><ExecutiveUsers /></RoleGuard></ProtectedRoute>} />
         <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
