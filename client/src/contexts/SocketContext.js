@@ -21,7 +21,12 @@ export const SocketProvider = ({ children }) => {
     if (user) {
       const token = localStorage.getItem('token');
       if (token) {
-        const newSocket = io('http://localhost:5000', {
+        const isProduction = window.location.hostname !== 'localhost';
+        const apiUrl = isProduction 
+          ? (process.env.REACT_APP_PRODUCTION_API_URL || 'https://team-tracker-2.onrender.com/api')
+          : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
+        const socketUrl = apiUrl.replace('/api', '');
+        const newSocket = io(socketUrl, {
           auth: {
             token: token
           }
