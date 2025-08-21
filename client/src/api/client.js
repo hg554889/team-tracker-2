@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const client = axios.create({ baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api' });
+const isProduction = window.location.hostname !== 'localhost';
+const apiUrl = isProduction 
+  ? (process.env.REACT_APP_PRODUCTION_API_URL || 'https://hollow-jeanna-akjp-dea9c7c9.koyeb.app/api')
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
+
+const client = axios.create({ baseURL: apiUrl });
 
 client.interceptors.request.use((config)=>{
   const token = localStorage.getItem('token');
