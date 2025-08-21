@@ -1,5 +1,7 @@
 {
   "name": "team-tracker-server",
+  "version": "1.0.0",
+  "description": "Server for Team Tracker application",
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.js",
