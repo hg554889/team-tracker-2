@@ -54,6 +54,7 @@ router.get('/', requireAuth, async (req, res) => {
       });
     }
     query.clubId = userClubId; // 자신의 동아리만
+    query.role = { $ne: Roles.ADMIN }; // ADMIN 계정 제외
   } else {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -68,7 +69,7 @@ router.get('/', requireAuth, async (req, res) => {
   const users = await User.find(query).select('-password');
   const masked = users.map(u => {
     const doc = u.toObject();
-    if (role === Roles.EXECUTIVE && (u.role === Roles.ADMIN || u.role === Roles.EXECUTIVE)) {
+    if (role === Roles.EXECUTIVE && u.role === Roles.EXECUTIVE) {
       doc.role = 'HIDDEN';
     }
     return doc;
