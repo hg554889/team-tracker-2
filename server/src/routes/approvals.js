@@ -9,11 +9,12 @@ const router = Router();
 
 router.get('/pending', requireAuth, async (req, res, next) => {
   try {
-    const { role, clubId } = req.user;
+    const { role, clubId, id } = req.user;
     
-    console.log('[DEBUG] Approvals API - User role:', role, 'clubId:', clubId);
+    console.log('[DEBUG] Approvals API - User role:', role, 'clubId:', clubId, 'userId:', id);
     
     if (!([Roles.ADMIN, Roles.EXECUTIVE].includes(role))) {
+      console.log('[DEBUG] Access denied - insufficient role');
       return res.status(403).json({ error: 'Forbidden' });
     }
     
@@ -21,19 +22,31 @@ router.get('/pending', requireAuth, async (req, res, next) => {
     
     if (role === Roles.EXECUTIVE) {
       filter.clubId = clubId;
+      console.log('[DEBUG] EXECUTIVE filter applied - only showing clubId:', clubId);
+    } else {
+      console.log('[DEBUG] ADMIN access - showing all pending users');
     }
     
-    console.log('[DEBUG] Filter:', JSON.stringify(filter));
+    console.log('[DEBUG] Final filter:', JSON.stringify(filter));
+    
+    // 모든 pending 사용자를 먼저 찾아보자
+    const allPendingUsers = await User.find({ approvalStatus: 'pending' })
+      .select('email username studentId clubId createdAt')
+      .sort({ createdAt: -1 });
+    
+    console.log('[DEBUG] Total pending users in system:', allPendingUsers.length);
+    allPendingUsers.forEach(u => console.log(`  - ${u.username} (${u.email}) - clubId: ${u.clubId}`));
     
     const pendingUsers = await User.find(filter)
       .select('email username studentId clubId createdAt')
       .sort({ createdAt: -1 });
     
-    console.log('[DEBUG] Found pending users:', pendingUsers.length);
+    console.log('[DEBUG] Filtered pending users for this role:', pendingUsers.length);
     pendingUsers.forEach(u => console.log(`  - ${u.username} (${u.email}) - clubId: ${u.clubId}`));
     
     res.json({ users: pendingUsers });
   } catch (e) { 
+    console.log('[DEBUG] Error in approvals API:', e);
     next(e); 
   }
 });
