@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
@@ -31,6 +32,7 @@ const app = express();
 const httpServer = createServer(app);
 
 app.use(helmet());
+app.use(morgan('dev'));
 
 // 멀티 오리진 CORS 설정
 app.use(cors({
