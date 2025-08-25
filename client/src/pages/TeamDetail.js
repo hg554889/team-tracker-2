@@ -47,6 +47,16 @@ export default function TeamDetail() {
   const [reports, setReports] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [joinRequests, setJoinRequests] = useState([]);
+  
+  // 팀 이슈 관련 상태
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [teamIssues, setTeamIssues] = useState([]);
+  const [issueForm, setIssueForm] = useState({
+    title: '',
+    description: '',
+    severity: 'medium',
+    type: 'other'
+  });
 
   // 팀 로드
   useEffect(() => {
@@ -86,6 +96,18 @@ export default function TeamDetail() {
     })();
   }, [team]);
 
+  // 권한 (useEffect에서 사용되므로 먼저 정의)
+  const isMember = useMemo(
+    () => (team?.members || []).some((m) => m?.user?._id === user?._id),
+    [team, user]
+  );
+  const isLeader = useMemo(
+    () =>
+      team?.leader?._id === user?._id ||
+      (team?.members || []).some((m) => m?.user?._id === user?._id && m.role === 'LEADER'),
+    [team, user]
+  );
+
   // 가입 신청 로드 (리더만)
   useEffect(() => {
     if (!team?._id || !isLeader) return;
@@ -99,17 +121,12 @@ export default function TeamDetail() {
     })();
   }, [team, isLeader]);
 
-  // 권한
-  const isMember = useMemo(
-    () => (team?.members || []).some((m) => m?.user?._id === user?._id),
-    [team, user]
-  );
-  const isLeader = useMemo(
-    () =>
-      team?.leader?._id === user?._id ||
-      (team?.members || []).some((m) => m?.user?._id === user?._id && m.role === 'LEADER'),
-    [team, user]
-  );
+  // 팀 이슈 로드
+  useEffect(() => {
+    if (team && isMember) {
+      loadTeamIssues();
+    }
+  }, [team, isMember]);
   const canEdit = isLeader || user?.role === 'ADMIN';
   const canUseExclusiveFeatures = isMember || isLeader || user?.role === 'ADMIN' || user?.role === 'EXECUTIVE';
 
@@ -243,6 +260,64 @@ export default function TeamDetail() {
     }
   }
 
+  // 팀 이슈 관련 함수들
+  async function loadTeamIssues() {
+    try {
+      const response = await client.get(`/team-issues?teamId=${id}`);
+      setTeamIssues(response.data);
+    } catch (error) {
+      console.error('Failed to load team issues:', error);
+    }
+  }
+
+  async function createTeamIssue() {
+    if (!issueForm.title.trim() || !issueForm.description.trim()) {
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: '제목과 설명을 입력해주세요.' } 
+      }));
+      return;
+    }
+
+    try {
+      await client.post('/team-issues', {
+        teamId: id,
+        ...issueForm
+      });
+      
+      setIssueForm({
+        title: '',
+        description: '',
+        severity: 'medium',
+        type: 'other'
+      });
+      setShowIssueModal(false);
+      loadTeamIssues();
+      
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: '팀 이슈가 생성되었습니다.' } 
+      }));
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || '팀 이슈 생성에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: errorMessage } 
+      }));
+    }
+  }
+
+  async function updateIssueStatus(issueId, status) {
+    try {
+      await client.put(`/team-issues/${issueId}`, { status });
+      loadTeamIssues();
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: '이슈 상태가 업데이트되었습니다.' } 
+      }));
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: '이슈 상태 업데이트에 실패했습니다.' } 
+      }));
+    }
+  }
+
   async function leaveTeam() {
     // 확인 대화상자
     if (!window.confirm('정말로 이 팀을 떠나시겠습니까?')) {
@@ -351,7 +426,7 @@ export default function TeamDetail() {
 
       {/* 탭 */}
       <div className="card" style={{ display: 'flex', gap: 8, padding: '8px 12px', marginBottom: 16 }}>
-        {['overview', 'progress', 'members', 'reports', 'prediction'].concat(isLeader && joinRequests.length > 0 ? ['requests'] : []).map((t) => (
+        {['overview', 'progress', 'members', 'reports', 'prediction', 'issues'].concat(isLeader && joinRequests.length > 0 ? ['requests'] : []).map((t) => (
           <button 
             key={t} 
             className={`btn ${tab === t ? 'primary' : ''}`} 
@@ -362,7 +437,8 @@ export default function TeamDetail() {
              t === 'progress' ? '📈 진행률' :
              t === 'members' ? '👥 멤버' : 
              t === 'reports' ? '📊 보고서' :
-             t === 'prediction' ? '🤖 AI 예측' : '🔔 가입 신청'}
+             t === 'prediction' ? '🤖 AI 예측' : 
+             t === 'issues' ? '⚠️ 이슈' : '🔔 가입 신청'}
             {t === 'requests' && joinRequests.length > 0 && (
               <span style={{
                 position: 'absolute',
@@ -999,6 +1075,239 @@ export default function TeamDetail() {
             </div>
           )}
         </Section>
+      )}
+
+      {/* 이슈 탭 */}
+      {tab === 'issues' && isMember && (
+        <Section 
+          title={`팀 이슈 (${teamIssues.length}개)`}
+          right={
+            <button 
+              className="btn primary" 
+              onClick={() => setShowIssueModal(true)}
+            >
+              ⚠️ 이슈 생성
+            </button>
+          }
+        >
+          {teamIssues.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+              <p>현재 등록된 이슈가 없습니다.</p>
+              <button 
+                className="btn primary" 
+                onClick={() => setShowIssueModal(true)}
+                style={{ marginTop: '12px' }}
+              >
+                첫 번째 이슈 생성하기
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: '12px' }}>
+              {teamIssues.map((issue) => (
+                <div 
+                  key={issue._id} 
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    backgroundColor: issue.status === 'resolved' ? '#f0fdf4' : '#ffffff',
+                    borderLeft: `4px solid ${
+                      issue.severity === 'critical' ? '#dc2626' :
+                      issue.severity === 'high' ? '#ea580c' :
+                      issue.severity === 'medium' ? '#ca8a04' : '#16a34a'
+                    }`
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ 
+                        margin: '0 0 4px 0',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {issue.title}
+                      </h4>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                        <span style={{
+                          fontSize: '12px',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          backgroundColor: issue.severity === 'critical' ? '#fef2f2' : 
+                                          issue.severity === 'high' ? '#fefbeb' :
+                                          issue.severity === 'medium' ? '#fef3c7' : '#f0fdf4',
+                          color: issue.severity === 'critical' ? '#dc2626' :
+                                 issue.severity === 'high' ? '#ea580c' :
+                                 issue.severity === 'medium' ? '#ca8a04' : '#16a34a',
+                          fontWeight: '500'
+                        }}>
+                          {issue.severity}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          {issue.type}
+                        </span>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#6b7280'
+                        }}>
+                          {typeof issue.reportedBy === 'string' ? issue.reportedBy : issue.reportedBy?.username || 'Unknown'} · {new Date(issue.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {issue.status === 'open' && (
+                        <button
+                          className="btn"
+                          onClick={() => updateIssueStatus(issue._id, 'in_progress')}
+                          style={{
+                            fontSize: '12px',
+                            padding: '4px 8px',
+                            backgroundColor: '#3b82f6',
+                            color: 'white'
+                          }}
+                        >
+                          진행 중
+                        </button>
+                      )}
+                      {issue.status === 'in_progress' && (
+                        <button
+                          className="btn"
+                          onClick={() => updateIssueStatus(issue._id, 'resolved')}
+                          style={{
+                            fontSize: '12px',
+                            padding: '4px 8px',
+                            backgroundColor: '#10b981',
+                            color: 'white'
+                          }}
+                        >
+                          해결됨
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  <p style={{
+                    margin: 0,
+                    color: '#374151',
+                    fontSize: '14px',
+                    lineHeight: '1.5'
+                  }}>
+                    {issue.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* 이슈 생성 모달 */}
+      {showIssueModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '18px' }}>새 이슈 생성</h3>
+            
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>제목</label>
+              <input
+                type="text"
+                className="input"
+                value={issueForm.title}
+                onChange={(e) => setIssueForm({ ...issueForm, title: e.target.value })}
+                placeholder="이슈 제목을 입력하세요"
+              />
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>설명</label>
+              <textarea
+                className="input"
+                value={issueForm.description}
+                onChange={(e) => setIssueForm({ ...issueForm, description: e.target.value })}
+                placeholder="이슈에 대한 자세한 설명을 입력하세요"
+                rows="4"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>심각도</label>
+                <select
+                  className="input"
+                  value={issueForm.severity}
+                  onChange={(e) => setIssueForm({ ...issueForm, severity: e.target.value })}
+                >
+                  <option value="low">낮음</option>
+                  <option value="medium">보통</option>
+                  <option value="high">높음</option>
+                  <option value="critical">심각</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>유형</label>
+                <select
+                  className="input"
+                  value={issueForm.type}
+                  onChange={(e) => setIssueForm({ ...issueForm, type: e.target.value })}
+                >
+                  <option value="delay">일정 지연</option>
+                  <option value="resource">리소스 부족</option>
+                  <option value="technical">기술적 문제</option>
+                  <option value="communication">소통 문제</option>
+                  <option value="quality">품질 문제</option>
+                  <option value="other">기타</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                className="btn"
+                onClick={() => {
+                  setShowIssueModal(false);
+                  setIssueForm({
+                    title: '',
+                    description: '',
+                    severity: 'medium',
+                    type: 'other'
+                  });
+                }}
+              >
+                취소
+              </button>
+              <button
+                className="btn primary"
+                onClick={createTeamIssue}
+              >
+                생성
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       
       {canUseExclusiveFeatures && (

@@ -5,23 +5,8 @@ export default function ActionRequired({ summary }) {
   const navigate = useNavigate();
   const dueSoon = summary?.dueSoon || [];
   
-  // 승인 대기 중인 팀원 (임시 데이터)
-  const pendingMembers = [
-    {
-      id: 1,
-      name: '신입사원',
-      email: 'newbie@company.com',
-      requestedAt: '2일 전',
-      role: 'MEMBER'
-    },
-    {
-      id: 2,
-      name: '인턴생',
-      email: 'intern@company.com',
-      requestedAt: '1일 전',
-      role: 'MEMBER'
-    }
-  ];
+  // 승인 대기 중인 팀원 (실제 데이터 기반)
+  const pendingMembers = summary?.additionalStats?.pendingJoinRequests || [];
 
   // 마감 임박 보고서
   const urgentReports = dueSoon.filter(report => {
@@ -31,25 +16,8 @@ export default function ActionRequired({ summary }) {
     return diffHours <= 48; // 48시간 이내
   });
 
-  // 팀 내 이슈 알림 (임시 데이터)
-  const teamIssues = [
-    {
-      id: 1,
-      type: 'delay',
-      title: '일정 지연 위험',
-      description: '현재 진행률로는 목표 달성이 어려울 수 있습니다.',
-      severity: 'high',
-      createdAt: '1시간 전'
-    },
-    {
-      id: 2,
-      type: 'resource',
-      title: '리소스 부족',
-      description: '디자인 작업에 추가 인력이 필요합니다.',
-      severity: 'medium',
-      createdAt: '4시간 전'
-    }
-  ];
+  // 팀 내 이슈 알림 (실제 데이터 기반)
+  const teamIssues = summary?.additionalStats?.teamIssues || [];
 
   const getSeverityColor = (severity) => {
     switch (severity) {
@@ -162,7 +130,7 @@ export default function ActionRequired({ summary }) {
                   padding: '16px'
                 }}>
                   {pendingMembers.map((member) => (
-                    <div key={member.id} style={{
+                    <div key={member._id || member.id} style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -176,13 +144,13 @@ export default function ActionRequired({ summary }) {
                           color: '#2c3e50',
                           marginBottom: '2px'
                         }}>
-                          {member.name}
+                          {member.userId?.username || member.name || 'Unknown'}
                         </div>
                         <div style={{
                           fontSize: '11px',
                           color: '#636e72'
                         }}>
-                          {member.email} · {member.requestedAt}
+                          {member.userId?.email || member.email || ''} · {new Date(member.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                       <div style={{
@@ -333,7 +301,7 @@ export default function ActionRequired({ summary }) {
                           fontSize: '10px',
                           color: '#95a5a6'
                         }}>
-                          {issue.createdAt}
+                          {new Date(issue.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                       <button style={{

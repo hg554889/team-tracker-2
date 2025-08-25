@@ -8,13 +8,16 @@ export default function TeamPerformance({ summary }) {
   const teamProgress = kpi.avgProgress || 0;
   const targetProgress = 85; // 목표 진행률
   
-  // 팀원별 기여도 분석 (임시 데이터)
-  const memberContributions = [
-    { name: '김개발', contribution: 85, role: 'DEVELOPER', color: '#3498db' },
-    { name: '박기획', contribution: 78, role: 'PLANNER', color: '#9b59b6' },
-    { name: '이디자인', contribution: 92, role: 'DESIGNER', color: '#e67e22' },
-    { name: '최테스터', contribution: 71, role: 'TESTER', color: '#2ecc71' }
-  ];
+  // 팀원별 기여도 분석 (실제 데이터 기반)
+  const memberContributions = (summary?.additionalStats?.teamMemberContributions || [])
+    .slice(0, 8) // 최대 8명까지만 표시
+    .map((member, index) => ({
+      name: member.name,
+      contribution: member.contribution,
+      role: member.role,
+      reportsCount: member.reportsCount,
+      color: ['#3498db', '#9b59b6', '#e67e22', '#2ecc71', '#f39c12', '#e74c3c', '#1abc9c', '#34495e'][index % 8]
+    }));
 
   // 주차별 트렌드 데이터
   const weeklyTrend = myTeamsProgress[0]?.history || [60, 65, 72, 78];

@@ -3,6 +3,7 @@ import { Report } from '../models/Report.js';
 import { Team } from '../models/Team.js';
 import { User } from '../models/User.js';
 import { RoleRequest } from '../models/RoleRequest.js';
+import { TeamIssue } from '../models/TeamIssue.js';
 import { requireAuth } from '../middleware/auth.js';
 import { requireClubAccess } from '../middleware/clubAccess.js';
 import { Roles } from '../utils/roles.js';
@@ -210,6 +211,92 @@ router.get('/summary', requireAuth, requireClubAccess, async (req, res, next) =>
       kpi.avgProgress = Math.round(
         (avgByTeam.reduce((a,c) => a + (c.avgProgress || 0), 0) / Math.max(1, avgByTeam.length)) * 10
       ) / 10 || 0;
+
+      // LEADER용 추가 통계
+      if (role === Roles.LEADER) {
+        // 내가 리더인 팀들
+        const myLeaderTeams = await Team.find({
+          $or: [
+            { leader: meId },
+            { 'members': { $elemMatch: { user: meId, role: 'LEADER' } } }
+          ]
+        }).populate('members.user', 'username email');
+
+        // 팀원별 기여도 계산 (최근 4주 보고서 기준)
+        const fourWeeksAgo = new Date(Date.now() - 28*24*3600*1000);
+        const teamMemberContributions = [];
+        
+        for (const team of myLeaderTeams) {
+          const members = team.members || [];
+          for (const member of members) {
+            const memberReports = await Report.find({
+              team: team._id,
+              author: member.user._id,
+              weekOf: { $gte: fourWeeksAgo }
+            });
+            
+            const avgProgress = memberReports.length > 0 
+              ? Math.round(memberReports.reduce((sum, r) => sum + r.progress, 0) / memberReports.length)
+              : 0;
+              
+            teamMemberContributions.push({
+              id: member.user._id,
+              name: member.user.username,
+              email: member.user.email,
+              role: member.role,
+              contribution: avgProgress,
+              reportsCount: memberReports.length,
+              teamName: team.name
+            });
+          }
+        }
+
+        // 대기 중인 팀 가입 신청
+        const { TeamJoinRequest } = await import('../models/TeamJoinRequest.js');
+        const pendingJoinRequests = await TeamJoinRequest.find({
+          teamId: { $in: myLeaderTeams.map(t => t._id) },
+          status: 'pending'
+        }).populate('userId', 'username email');
+
+        // 최근 팀 활동 (보고서 제출, 멤버 가입 등)
+        const recentTeamActivities = [];
+        
+        // 최근 보고서 제출
+        const recentReports = await Report.find({
+          team: { $in: myLeaderTeams.map(t => t._id) }
+        }).populate('author', 'username').populate('team', 'name').sort({ createdAt: -1 }).limit(10);
+        
+        recentReports.forEach(report => {
+          recentTeamActivities.push({
+            type: 'report_submitted',
+            message: `${report.author.username}님이 ${report.team.name} 보고서를 제출했습니다.`,
+            timestamp: report.createdAt,
+            teamName: report.team.name
+          });
+        });
+
+        // 팀 이슈 조회 (최근 열린 이슈들)
+        const teamIssues = await TeamIssue.find({
+          team: { $in: myLeaderTeams.map(t => t._id) },
+          status: { $in: ['open', 'in_progress'] }
+        }).populate('reportedBy', 'username').sort({ createdAt: -1 }).limit(10);
+
+        const formattedIssues = teamIssues.map(issue => ({
+          id: issue._id,
+          type: issue.type,
+          title: issue.title,
+          description: issue.description,
+          severity: issue.severity,
+          createdAt: issue.createdAt,
+          reportedBy: issue.reportedBy?.username
+        }));
+
+        additionalStats.teamMemberContributions = teamMemberContributions;
+        additionalStats.pendingJoinRequests = pendingJoinRequests;
+        additionalStats.recentTeamActivities = recentTeamActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
+        additionalStats.myLeaderTeams = myLeaderTeams;
+        additionalStats.teamIssues = formattedIssues;
+      }
 
       // 개인 알림
       if (overdueReports > 0) {

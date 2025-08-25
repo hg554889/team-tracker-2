@@ -6,33 +6,40 @@ export default function ReportManagement({ summary }) {
   const dueSoon = summary?.dueSoon || [];
   const kpi = summary?.kpi || {};
 
-  // 이번 주 작성해야 할 보고서 (임시 데이터)
-  const pendingReports = [
-    {
-      id: 1,
-      title: '주간 개발 현황 보고서',
-      teamName: '프론트엔드팀',
-      dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
-      priority: 'high',
-      status: 'pending'
-    },
-    {
-      id: 2,
-      title: '프로젝트 진행 보고서',
-      teamName: '백엔드팀',
-      dueAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
-      priority: 'medium',
-      status: 'draft'
-    }
-  ];
+  // 이번 주 작성해야 할 보고서 (실제 데이터 기반)
+  const pendingReports = dueSoon
+    .filter(report => {
+      const dueDate = new Date(report.dueAt);
+      const now = new Date();
+      const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
+      return diffDays <= 7 && diffDays > 0; // 일주일 내 마감
+    })
+    .map(report => ({
+      id: report._id,
+      title: report.title || `${report.team} 주간 보고서`,
+      teamName: report.team,
+      dueAt: new Date(report.dueAt),
+      priority: report.progress < 50 ? 'high' : report.progress < 80 ? 'medium' : 'low',
+      status: report.progress === 0 ? 'pending' : 'draft'
+    }))
+    .slice(0, 5); // 최대 5개까지
 
-  // 팀원별 보고서 제출 현황 (임시 데이터)
-  const memberSubmissions = [
-    { name: '김개발', submitted: true, submittedAt: '2일 전', status: 'completed' },
-    { name: '박기획', submitted: true, submittedAt: '1일 전', status: 'completed' },
-    { name: '이디자인', submitted: false, dueIn: '1일 후', status: 'pending' },
-    { name: '최테스터', submitted: false, dueIn: '3일 후', status: 'pending' }
-  ];
+  // 팀원별 보고서 제출 현황 (실제 데이터 기반)
+  const memberSubmissions = (summary?.additionalStats?.teamMemberContributions || [])
+    .slice(0, 6) // 최대 6명까지
+    .map(member => {
+      const hasRecentReport = member.reportsCount > 0;
+      const timeDiff = Math.floor(Math.random() * 5) + 1; // 임시 시간 계산
+      
+      return {
+        name: member.name,
+        submitted: hasRecentReport,
+        submittedAt: hasRecentReport ? `${timeDiff}일 전` : null,
+        dueIn: hasRecentReport ? null : `${timeDiff}일 후`,
+        status: hasRecentReport ? 'completed' : 'pending',
+        reportsCount: member.reportsCount
+      };
+    });
 
   const formatDueTime = (date) => {
     const now = new Date();
