@@ -7,6 +7,8 @@ export default function MemberStatus({ summary }) {
   const kpi = summary?.kpi || {};
 
   // 멤버 현황 데이터
+  const leaderCount = additionalStats.roleDistribution?.find(r => r._id === 'LEADER')?.count || 0;
+  
   const memberData = [
     {
       label: '전체 멤버',
@@ -22,7 +24,7 @@ export default function MemberStatus({ summary }) {
     },
     {
       label: '활성 팀장',
-      value: Math.floor((kpi.teams || 0) * 0.8), // 임시 계산
+      value: leaderCount,
       icon: '👑',
       color: '#9b59b6'
     },
@@ -34,11 +36,15 @@ export default function MemberStatus({ summary }) {
     }
   ];
 
-  // 권한별 분포 (임시 데이터)
-  const roleDistribution = [
-    { role: 'LEADER', count: Math.floor((additionalStats.totalUsers || 0) * 0.2), color: '#e74c3c' },
-    { role: 'MEMBER', count: Math.floor((additionalStats.totalUsers || 0) * 0.8), color: '#3498db' }
-  ];
+  // 권한별 분포 (실제 데이터)
+  const roleDistribution = additionalStats.roleDistribution ? 
+    additionalStats.roleDistribution.map(r => ({
+      role: r._id,
+      count: r.count,
+      color: r._id === 'LEADER' ? '#e74c3c' : 
+             r._id === 'EXECUTIVE' ? '#9b59b6' :
+             r._id === 'ADMIN' ? '#f39c12' : '#3498db'
+    })) : [];
 
   const totalMembers = roleDistribution.reduce((sum, item) => sum + item.count, 0);
 
@@ -143,7 +149,9 @@ export default function MemberStatus({ summary }) {
                     fontWeight: '500',
                     color: '#2c3e50'
                   }}>
-                    {item.role === 'LEADER' ? '팀장' : '멤버'}
+                    {item.role === 'LEADER' ? '팀장' : 
+                     item.role === 'EXECUTIVE' ? '임원' :
+                     item.role === 'ADMIN' ? '관리자' : '멤버'}
                   </div>
                   <div style={{
                     flex: 1,
@@ -193,14 +201,63 @@ export default function MemberStatus({ summary }) {
             padding: '16px',
             border: '1px dashed #dee2e6'
           }}>
-            <div style={{
-              textAlign: 'center',
-              color: '#636e72',
-              fontSize: '14px',
-              marginBottom: '12px'
-            }}>
-              💡 최근 가입한 멤버 정보를 표시합니다
-            </div>
+            {additionalStats.recentUsers && additionalStats.recentUsers.length > 0 ? (
+              <div style={{ marginBottom: '16px' }}>
+                {additionalStats.recentUsers.map((user, index) => (
+                  <div key={index} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px',
+                    background: 'white',
+                    borderRadius: '6px',
+                    marginBottom: '6px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      background: '#3498db',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginRight: '12px'
+                    }}>
+                      {user.username[0].toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: '#2c3e50'
+                      }}>
+                        {user.username}
+                      </div>
+                      <div style={{
+                        fontSize: '11px',
+                        color: '#636e72'
+                      }}>
+                        {user.role === 'LEADER' ? '팀장' : 
+                         user.role === 'EXECUTIVE' ? '임원' :
+                         user.role === 'ADMIN' ? '관리자' : '멤버'} • {new Date(user.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                color: '#636e72',
+                fontSize: '14px',
+                marginBottom: '12px'
+              }}>
+                💡 최근 7일간 새로 가입한 멤버가 없습니다
+              </div>
+            )}
             
             {additionalStats.pendingApprovals > 0 && (
               <div style={{
@@ -237,7 +294,7 @@ export default function MemberStatus({ summary }) {
                   fontSize: '12px',
                   cursor: 'pointer'
                 }}
-                onClick={() => navigate('/admin/users')}
+                onClick={() => navigate('/executive/users')}
               >
                 멤버 관리
               </button>
@@ -254,7 +311,7 @@ export default function MemberStatus({ summary }) {
                     fontSize: '12px',
                     cursor: 'pointer'
                   }}
-                  onClick={() => navigate('/admin/users?filter=pending')}
+                  onClick={() => navigate('/executive/users?filter=pending')}
                 >
                   승인 처리
                 </button>

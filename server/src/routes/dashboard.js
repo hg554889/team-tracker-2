@@ -41,11 +41,20 @@ router.get('/summary', requireAuth, requireClubAccess, async (req, res, next) =>
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay());
+    
+    const startOfLastWeek = new Date(startOfWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
 
-    // 기본 통계 계산
+    // 이번 주 통계 계산
     const reportsThisWeek = await Report.find({ 
       team: { $in: teamIds }, 
       weekOf: { $gte: startOfWeek } 
+    }).populate('author', 'username email');
+
+    // 지난 주 통계 계산
+    const reportsLastWeek = await Report.find({ 
+      team: { $in: teamIds }, 
+      weekOf: { $gte: startOfLastWeek, $lt: startOfWeek } 
     }).populate('author', 'username email');
 
     const avgByTeam = await Report.aggregate([
@@ -102,28 +111,83 @@ router.get('/summary', requireAuth, requireClubAccess, async (req, res, next) =>
         return !lastReport;
       });
 
+      // 권한별 사용자 분포
+      const roleDistribution = await User.aggregate([
+        { $match: role === Roles.EXECUTIVE ? { clubId, isApproved: true } : { isApproved: true } },
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ]);
+
+      // 최근 가입자 (최근 7일)
+      const recentUsers = await User.find({
+        ...(role === Roles.EXECUTIVE ? { clubId } : {}),
+        isApproved: true,
+        createdAt: { $gte: new Date(Date.now() - 7*24*60*60*1000) }
+      }).select('username email role createdAt').sort({ createdAt: -1 }).limit(5);
+
       additionalStats = {
         totalUsers,
         inactiveTeams: inactiveTeams.length,
         pendingApprovals,
-        pendingRoleRequests
+        pendingRoleRequests,
+        roleDistribution,
+        recentUsers
       };
     }
 
-    // KPI 계산
+    // 지난 주 평균 진행률 계산
+    const avgByTeamLastWeek = await Report.aggregate([
+      { $match: { 
+        team: { $in: teamIds }, 
+        weekOf: { $gte: startOfLastWeek, $lt: startOfWeek } 
+      }},
+      { $group: { _id: '$team', avgProgress: { $avg: '$progress' } } }
+    ]);
+
+    // KPI 계산 및 트렌드 분석
     const kpi = {};
+    let trends = {};
+    
     if (role === Roles.ADMIN || role === Roles.EXECUTIVE) {
+      // 이번 주 기본 통계
       kpi.teams = teams.length;
-      kpi.activeTeams = teams.filter(t => 
+      const activeTeamsThisWeek = teams.filter(t => 
         reportsThisWeek.some(r => String(r.team) === String(t._id))
       ).length;
-      kpi.avgProgress = Math.round(
+      kpi.activeTeams = activeTeamsThisWeek;
+      
+      const avgProgressThisWeek = Math.round(
         (avgByTeam.reduce((a,c) => a + (c.avgProgress || 0), 0) / Math.max(1, avgByTeam.length)) * 10
       ) / 10 || 0;
+      kpi.avgProgress = avgProgressThisWeek;
       
-      const submittedTeams = new Set(reportsThisWeek.map(r => String(r.team)));
-      kpi.submitRateThisWeek = Math.round((submittedTeams.size / Math.max(1, teams.length)) * 100);
+      const submittedTeamsThisWeek = new Set(reportsThisWeek.map(r => String(r.team)));
+      const submitRateThisWeek = Math.round((submittedTeamsThisWeek.size / Math.max(1, teams.length)) * 100);
+      kpi.submitRateThisWeek = submitRateThisWeek;
+
+      // 지난 주 통계
+      const activeTeamsLastWeek = teams.filter(t => 
+        reportsLastWeek.some(r => String(r.team) === String(t._id))
+      ).length;
       
+      const avgProgressLastWeek = Math.round(
+        (avgByTeamLastWeek.reduce((a,c) => a + (c.avgProgress || 0), 0) / Math.max(1, avgByTeamLastWeek.length)) * 10
+      ) / 10 || 0;
+      
+      const submittedTeamsLastWeek = new Set(reportsLastWeek.map(r => String(r.team)));
+      const submitRateLastWeek = Math.round((submittedTeamsLastWeek.size / Math.max(1, teams.length)) * 100);
+
+      // 90% 이상 달성 팀 수
+      const highPerformingTeamsThisWeek = avgByTeam.filter(t => t.avgProgress >= 90).length;
+      const highPerformingTeamsLastWeek = avgByTeamLastWeek.filter(t => t.avgProgress >= 90).length;
+
+      // 트렌드 계산
+      trends = {
+        avgProgress: avgProgressThisWeek - avgProgressLastWeek,
+        submitRate: submitRateThisWeek - submitRateLastWeek,
+        activeTeams: activeTeamsThisWeek - activeTeamsLastWeek,
+        highPerformingTeams: highPerformingTeamsThisWeek - highPerformingTeamsLastWeek
+      };
+
       if (role === Roles.EXECUTIVE) {
         kpi.totalUsers = additionalStats.totalUsers;
       } else {
@@ -181,6 +245,7 @@ router.get('/summary', requireAuth, requireClubAccess, async (req, res, next) =>
     res.json({
       scope,
       kpi,
+      trends,
       dueSoon: dueSoon.map(d => ({
         _id: d._id,
         title: d.title || 'Untitled Report',
