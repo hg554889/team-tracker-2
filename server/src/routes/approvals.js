@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { updateUserInfoSchema } from '../validators/auth.js';
 import { Roles } from '../utils/roles.js';
+import { getSocketService } from '../services/socketService.js';
 
 const router = Router();
 
@@ -75,6 +76,20 @@ router.post('/:userId/approve', requireAuth, async (req, res, next) => {
     user.approvedAt = new Date();
     
     await user.save();
+    
+    // 실시간으로 사용자에게 승인 알림
+    try {
+      const socketService = getSocketService();
+      if (socketService) {
+        socketService.notifyUserApproval(userId, {
+          approved: true,
+          approvedAt: user.approvedAt,
+          message: '회원가입이 승인되었습니다! 모든 기능을 사용하실 수 있습니다.'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to send approval notification:', error);
+    }
     
     res.json({ message: 'User approved successfully' });
   } catch (e) { 

@@ -52,16 +52,20 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
     const dueDate  = toDateOrNull(dueAt);
     if (!weekDate) return res.status(400).json({ error: 'InvalidWeekOf' });
 
-    const filter = { team: teamId, weekOf: weekDate };
-    const $setOnInsert = { team: teamId, weekOf: weekDate, author: userId, clubId: team.clubId };
-    const $set = { progress, goals, issues, dueAt: dueDate || undefined };
-    if (attachments) $set.attachments = attachments;
+    // 항상 새로운 보고서 생성
+    const report = new Report({
+      team: teamId,
+      author: userId,
+      weekOf: weekDate,
+      clubId: team.clubId,
+      progress,
+      goals,
+      issues,
+      dueAt: dueDate || undefined,
+      ...(attachments && { attachments })
+    });
 
-    const report = await Report.findOneAndUpdate(
-      filter,
-      { $set, $setOnInsert },
-      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
-    );
+    await report.save();
 
     res.status(201).json(report);
   } catch (e) { next(e); }

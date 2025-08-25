@@ -229,6 +229,11 @@
   stroke-linecap: round;
 }
 
+.progress-ring text {
+  transform: rotate(90deg);
+  transform-origin: center;
+}
+
 .report-card-content {
   border-top: 1px solid #f1f5f9;
   padding-top: 1rem;
@@ -402,5 +407,7 @@
     x: 20;
     y: 25;
     font-size: 10px;
+    transform: rotate(90deg);
+    transform-origin: center;
   }
 }

@@ -18,10 +18,11 @@ const ReportSchema = new Schema({
   comments: { type: [CommentSchema], default: [] }
 }, { timestamps: true });
 
-// 복합 인덱스 추가
-ReportSchema.index({ team: 1, weekOf: 1 }, { unique: true });
+// 복합 인덱스 추가 - 검색 성능 최적화 (unique 제약조건 제거)
+ReportSchema.index({ team: 1, author: 1, weekOf: 1 });
 ReportSchema.index({ clubId: 1, weekOf: 1 });
 ReportSchema.index({ clubId: 1, author: 1 });
 ReportSchema.index({ clubId: 1, dueAt: 1 });
+ReportSchema.index({ createdAt: -1 }); // 생성 시간으로 정렬용
 
 export const Report = model('Report', ReportSchema);

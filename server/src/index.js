@@ -25,6 +25,7 @@ import aiRoutes from './routes/ai.js';
 import approvalRoutes from './routes/approvals.js';
 import roleRequestRoutes from './routes/roleRequests.js'; // ✅ 추가된 import
 import clubSettingsRoutes from './routes/clubSettings.js'; // ✅ 추가된 import
+import teamJoinRequestRoutes from './routes/teamJoinRequests.js';
 import predictionRoutes from './routes/predictions.js';
 import inquiryRoutes from './routes/inquiries.js';
 
@@ -76,6 +77,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/role-requests', roleRequestRoutes); // ✅ roleRequests 라우터 등록
 app.use('/api/club-settings', clubSettingsRoutes); // ✅ clubSettings 라우터 등록
+app.use('/api/team-join-requests', teamJoinRequestRoutes);
 app.use('/api/predictions', predictionRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 

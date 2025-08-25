@@ -3,9 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar(){
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const nav = useNavigate();
-  function logout(){ localStorage.removeItem('token'); setUser(null); nav('/login'); }
+  
+  const handleLogout = () => {
+    logout();
+    nav('/login');
+  };
 
   return (
     <header className="appbar">
@@ -26,7 +30,7 @@ export default function Navbar(){
           )}
           <button className="btn ghost" onClick={()=>nav('/reports/new')}>보고서 작성</button>
           <button className="btn ghost" onClick={()=>nav('/profile')}>프로필</button>
-          {user ? <button className="btn primary" onClick={logout}>로그아웃</button> : <button className="btn primary" onClick={()=>nav('/login')}>로그인</button>}
+          {user ? <button className="btn primary" onClick={handleLogout}>로그아웃</button> : <button className="btn primary" onClick={()=>nav('/login')}>로그인</button>}
         </div>
       </div>
     </header>

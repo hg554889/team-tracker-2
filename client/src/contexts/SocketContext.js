@@ -15,7 +15,7 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   useEffect(() => {
     if (user) {
@@ -44,6 +44,25 @@ export const SocketProvider = ({ children }) => {
 
         newSocket.on('error', (error) => {
           console.error('Socket error:', error);
+        });
+
+        // 승인 알림 처리
+        newSocket.on('user-approved', (approvalData) => {
+          console.log('User approved:', approvalData);
+          
+          // 사용자 정보 새로고침
+          refreshUser();
+          
+          // 성공 메시지 표시
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: {
+              type: 'success',
+              msg: approvalData.message
+            }
+          }));
+          
+          // 사용자 업데이트 이벤트 발생
+          window.dispatchEvent(new CustomEvent('userUpdated'));
         });
 
         setSocket(newSocket);

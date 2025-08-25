@@ -95,7 +95,7 @@ export default function ReportForm(){
     try{
       const payload = {
         teamId,
-        weekOf: new Date(weekOf).toISOString(),
+        weekOf: new Date().toISOString(), // 현재 시간으로 설정하여 고유성 보장
         progress: Number(progress),
         goals,
         issues,

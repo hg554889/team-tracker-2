@@ -9,35 +9,148 @@ export default function GoalAchievement({ summary }) {
   const targetProgress = 80; // 목표 진행률
   const achievementRate = Math.min(Math.round((totalProgress / targetProgress) * 100), 100);
 
-  // 팀 유형별 성과 분석 (임시 데이터)
-  const teamTypeAnalysis = [
+  // 팀 진행률 분포 분석 (실제 데이터 기반)
+  const progressRanges = [
     {
-      type: '개발 팀',
-      count: Math.floor(myTeamsProgress.length * 0.4),
-      avgProgress: Math.round(totalProgress * 1.1),
+      type: '우수 팀 (90%+)',
+      count: myTeamsProgress.filter(team => {
+        const avgProgress = team.history?.length > 0 
+          ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+          : 0;
+        return avgProgress >= 90;
+      }).length,
+      avgProgress: Math.round(
+        myTeamsProgress
+          .filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress >= 90;
+          })
+          .reduce((sum, team) => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return sum + avgProgress;
+          }, 0) / Math.max(1, myTeamsProgress.filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress >= 90;
+          }).length) || 0
+      ),
+      color: '#2ecc71'
+    },
+    {
+      type: '양호 팀 (70-89%)',
+      count: myTeamsProgress.filter(team => {
+        const avgProgress = team.history?.length > 0 
+          ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+          : 0;
+        return avgProgress >= 70 && avgProgress < 90;
+      }).length,
+      avgProgress: Math.round(
+        myTeamsProgress
+          .filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress >= 70 && avgProgress < 90;
+          })
+          .reduce((sum, team) => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return sum + avgProgress;
+          }, 0) / Math.max(1, myTeamsProgress.filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress >= 70 && avgProgress < 90;
+          }).length) || 0
+      ),
       color: '#3498db'
     },
     {
-      type: '기획 팀',
-      count: Math.floor(myTeamsProgress.length * 0.3),
-      avgProgress: Math.round(totalProgress * 0.9),
-      color: '#9b59b6'
-    },
-    {
-      type: '디자인 팀',
-      count: Math.floor(myTeamsProgress.length * 0.3),
-      avgProgress: Math.round(totalProgress * 1.05),
+      type: '개선 필요 (70% 미만)',
+      count: myTeamsProgress.filter(team => {
+        const avgProgress = team.history?.length > 0 
+          ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+          : 0;
+        return avgProgress < 70;
+      }).length,
+      avgProgress: Math.round(
+        myTeamsProgress
+          .filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress < 70;
+          })
+          .reduce((sum, team) => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return sum + avgProgress;
+          }, 0) / Math.max(1, myTeamsProgress.filter(team => {
+            const avgProgress = team.history?.length > 0 
+              ? team.history.reduce((a, b) => a + b, 0) / team.history.length 
+              : 0;
+            return avgProgress < 70;
+          }).length) || 0
+      ),
       color: '#e67e22'
     }
-  ].filter(team => team.count > 0);
+  ].filter(range => range.count > 0);
 
-  // 월별 성과 트렌드 (임시 데이터)
-  const monthlyTrend = [
-    { month: '1월', progress: Math.max(20, totalProgress - 30) },
-    { month: '2월', progress: Math.max(30, totalProgress - 20) },
-    { month: '3월', progress: Math.max(40, totalProgress - 10) },
-    { month: '현재', progress: totalProgress }
-  ];
+  // 주차별 성과 트렌드 (실제 데이터 기반)
+  const weeklyTrend = (() => {
+    if (myTeamsProgress.length === 0) {
+      return [
+        { period: '3주 전', progress: 0 },
+        { period: '2주 전', progress: 0 },
+        { period: '1주 전', progress: 0 },
+        { period: '이번 주', progress: totalProgress }
+      ];
+    }
+
+    // 각 팀의 history를 주차별로 평균 계산
+    const maxHistoryLength = Math.max(...myTeamsProgress.map(team => team.history?.length || 0));
+    
+    if (maxHistoryLength <= 1) {
+      return [
+        { period: '3주 전', progress: Math.max(0, totalProgress - 15) },
+        { period: '2주 전', progress: Math.max(0, totalProgress - 10) },
+        { period: '1주 전', progress: Math.max(0, totalProgress - 5) },
+        { period: '이번 주', progress: totalProgress }
+      ];
+    }
+
+    const weeklyAverages = [];
+    for (let i = Math.max(0, maxHistoryLength - 4); i < maxHistoryLength; i++) {
+      const weekData = myTeamsProgress
+        .filter(team => team.history && team.history[i] !== undefined)
+        .map(team => team.history[i]);
+      
+      const average = weekData.length > 0 
+        ? Math.round(weekData.reduce((a, b) => a + b, 0) / weekData.length)
+        : 0;
+      
+      weeklyAverages.push(average);
+    }
+
+    // 부족한 주차 데이터는 패딩으로 채움
+    while (weeklyAverages.length < 4) {
+      weeklyAverages.unshift(Math.max(0, (weeklyAverages[0] || totalProgress) - 5));
+    }
+
+    return [
+      { period: '3주 전', progress: weeklyAverages[0] || 0 },
+      { period: '2주 전', progress: weeklyAverages[1] || 0 },
+      { period: '1주 전', progress: weeklyAverages[2] || 0 },
+      { period: '이번 주', progress: weeklyAverages[3] || totalProgress }
+    ];
+  })();
 
   return (
     <div>
@@ -130,7 +243,7 @@ export default function GoalAchievement({ summary }) {
             </div>
           </div>
 
-          {/* 팀 유형별 성과 분석 */}
+          {/* 팀 진행률 분포 분석 */}
           <div>
             <h3 style={{
               fontSize: '16px',
@@ -138,17 +251,17 @@ export default function GoalAchievement({ summary }) {
               marginBottom: '16px',
               fontWeight: '600'
             }}>
-              🔍 팀 유형별 성과
+              🔍 팀 진행률 분포
             </h3>
             
             <div style={{ space: '12px' }}>
-              {teamTypeAnalysis.map((team, index) => (
+              {progressRanges.map((range, index) => (
                 <div key={index} style={{
                   background: '#f8f9fa',
                   borderRadius: '8px',
                   padding: '16px',
                   marginBottom: '12px',
-                  border: `1px solid ${team.color}20`
+                  border: `1px solid ${range.color}20`
                 }}>
                   <div style={{
                     display: 'flex',
@@ -161,13 +274,13 @@ export default function GoalAchievement({ summary }) {
                       fontWeight: '600',
                       color: '#2c3e50'
                     }}>
-                      {team.type}
+                      {range.type}
                     </span>
                     <span style={{
                       fontSize: '14px',
                       color: '#636e72'
                     }}>
-                      {team.count}팀
+                      {range.count}팀
                     </span>
                   </div>
                   
@@ -184,9 +297,9 @@ export default function GoalAchievement({ summary }) {
                       overflow: 'hidden'
                     }}>
                       <div style={{
-                        width: `${Math.min(team.avgProgress, 100)}%`,
+                        width: `${Math.min(range.avgProgress, 100)}%`,
                         height: '100%',
-                        background: team.color,
+                        background: range.color,
                         borderRadius: '4px',
                         transition: 'width 0.3s ease'
                       }} />
@@ -194,10 +307,10 @@ export default function GoalAchievement({ summary }) {
                     <span style={{
                       fontSize: '12px',
                       fontWeight: '600',
-                      color: team.color,
+                      color: range.color,
                       minWidth: '35px'
                     }}>
-                      {team.avgProgress}%
+                      {range.avgProgress}%
                     </span>
                   </div>
                 </div>
@@ -205,7 +318,7 @@ export default function GoalAchievement({ summary }) {
             </div>
           </div>
 
-          {/* 월별 성과 트렌드 */}
+          {/* 주차별 성과 트렌드 */}
           <div>
             <h3 style={{
               fontSize: '16px',
@@ -213,7 +326,7 @@ export default function GoalAchievement({ summary }) {
               marginBottom: '16px',
               fontWeight: '600'
             }}>
-              📈 월별 성과 트렌드
+              📈 주차별 성과 트렌드
             </h3>
             
             <div style={{
@@ -221,20 +334,20 @@ export default function GoalAchievement({ summary }) {
               borderRadius: '8px',
               padding: '16px'
             }}>
-              {monthlyTrend.map((month, index) => (
+              {weeklyTrend.map((week, index) => (
                 <div key={index} style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '8px 0',
-                  borderBottom: index < monthlyTrend.length - 1 ? '1px solid #dee2e6' : 'none'
+                  borderBottom: index < weeklyTrend.length - 1 ? '1px solid #dee2e6' : 'none'
                 }}>
                   <span style={{
                     fontSize: '12px',
                     color: '#636e72',
-                    fontWeight: month.month === '현재' ? '600' : '400'
+                    fontWeight: week.period === '이번 주' ? '600' : '400'
                   }}>
-                    {month.month}
+                    {week.period}
                   </span>
                   <div style={{
                     display: 'flex',
@@ -249,19 +362,19 @@ export default function GoalAchievement({ summary }) {
                       overflow: 'hidden'
                     }}>
                       <div style={{
-                        width: `${month.progress}%`,
+                        width: `${week.progress}%`,
                         height: '100%',
-                        background: month.month === '현재' ? '#2ecc71' : '#3498db',
+                        background: week.period === '이번 주' ? '#2ecc71' : '#3498db',
                         borderRadius: '3px'
                       }} />
                     </div>
                     <span style={{
                       fontSize: '12px',
                       fontWeight: '600',
-                      color: month.month === '현재' ? '#2ecc71' : '#3498db',
+                      color: week.period === '이번 주' ? '#2ecc71' : '#3498db',
                       minWidth: '30px'
                     }}>
-                      {month.progress}%
+                      {week.progress}%
                     </span>
                   </div>
                 </div>

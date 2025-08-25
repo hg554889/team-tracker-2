@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { getTeam, updateTeam, addMember, removeMember } from '../api/teams';
+import { getTeam, updateTeam, addMember, removeMember, changeRole } from '../api/teams';
+import { getTeamJoinRequests, processJoinRequest } from '../api/teamJoinRequests';
 import { useAuth } from '../contexts/AuthContext';
 import client from '../api/client';
 import { getReportsByTeam } from '../api/reports';
@@ -45,6 +46,7 @@ export default function TeamDetail() {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [reports, setReports] = useState([]);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [joinRequests, setJoinRequests] = useState([]);
 
   // 팀 로드
   useEffect(() => {
@@ -83,6 +85,19 @@ export default function TeamDetail() {
       }
     })();
   }, [team]);
+
+  // 가입 신청 로드 (리더만)
+  useEffect(() => {
+    if (!team?._id || !isLeader) return;
+    (async () => {
+      try {
+        const { data } = await getTeamJoinRequests(team._id, { status: 'pending' });
+        setJoinRequests(data.items || []);
+      } catch {
+        setJoinRequests([]);
+      }
+    })();
+  }, [team, isLeader]);
 
   // 권한
   const isMember = useMemo(
@@ -172,22 +187,102 @@ export default function TeamDetail() {
     }
   }
 
-  async function promote(u) {
-    await addMember(team._id, { userId: u, role: 'LEADER' });
-    const { data } = await getTeam(id);
-    setTeam(data || null);
+  async function changeUserRole(targetUserId, newRole) {
+    try {
+      const { data } = await changeRole(team._id, { 
+        targetUserId, 
+        newRole 
+      });
+      
+      setTeam(data.team);
+      
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { 
+          type: 'success', 
+          msg: newRole === 'LEADER' ? '리더로 승격되었습니다.' : '멤버로 변경되었습니다.'
+        }
+      }));
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || '역할 변경에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'error', msg: errorMessage }
+      }));
+    }
   }
 
-  async function demote(u) {
-    await addMember(team._id, { userId: u, role: 'MEMBER' });
-    const { data } = await getTeam(id);
-    setTeam(data || null);
-  }
 
   async function remove(u) {
     await removeMember(team._id, u);
     const { data } = await getTeam(id);
     setTeam(data || null);
+  }
+
+  async function handleJoinRequest(requestId, action) {
+    try {
+      await processJoinRequest(requestId, action);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { 
+          type: 'success', 
+          msg: action === 'approve' ? '가입 신청을 승인했습니다.' : '가입 신청을 거절했습니다.'
+        }
+      }));
+      
+      // 팀 정보와 가입 신청 목록 새로고침
+      const [teamData, joinRequestsData] = await Promise.all([
+        getTeam(id),
+        getTeamJoinRequests(team._id, { status: 'pending' })
+      ]);
+      
+      setTeam(teamData.data || null);
+      setJoinRequests(joinRequestsData.data.items || []);
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || '처리에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'error', msg: errorMessage }
+      }));
+    }
+  }
+
+  async function leaveTeam() {
+    // 확인 대화상자
+    if (!window.confirm('정말로 이 팀을 떠나시겠습니까?')) {
+      return;
+    }
+
+    // 리더인 경우 추가 확인
+    if (isLeader) {
+      const otherLeaders = (team.members || []).filter(m => 
+        m.role === 'LEADER' && String(m.user._id) !== String(user._id)
+      );
+      
+      if (otherLeaders.length === 0) {
+        window.dispatchEvent(new CustomEvent('toast', {
+          detail: { 
+            type: 'error', 
+            msg: '다른 리더가 없어 팀을 떠날 수 없습니다. 먼저 다른 멤버를 리더로 승격시켜주세요.' 
+          }
+        }));
+        return;
+      }
+
+      if (!window.confirm('팀장입니다. 떠나면 다른 리더가 팀을 관리하게 됩니다. 계속하시겠습니까?')) {
+        return;
+      }
+    }
+
+    try {
+      await removeMember(team._id, user._id);
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'success', msg: '팀에서 성공적으로 탈퇴했습니다.' }
+      }));
+      // 팀 목록 페이지로 이동
+      nav('/teams');
+    } catch (error) {
+      const errorMessage = error?.response?.data?.message || '팀 탈퇴에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'error', msg: errorMessage }
+      }));
+    }
   }
 
   if (team === undefined) return <div className="container">로딩...</div>;
@@ -233,6 +328,19 @@ export default function TeamDetail() {
             </button>
           )}
           {canEdit && <button className="btn" onClick={inviteLink}>👥 초대 링크</button>}
+          {isMember && (
+            <button 
+              className="btn" 
+              onClick={leaveTeam}
+              style={{ 
+                backgroundColor: '#dc3545', 
+                color: 'white',
+                border: '1px solid #dc3545'
+              }}
+            >
+              🚪 팀 탈퇴
+            </button>
+          )}
         </div>
       </div>
 
@@ -243,17 +351,36 @@ export default function TeamDetail() {
 
       {/* 탭 */}
       <div className="card" style={{ display: 'flex', gap: 8, padding: '8px 12px', marginBottom: 16 }}>
-        {['overview', 'progress', 'members', 'reports', 'prediction'].map((t) => (
+        {['overview', 'progress', 'members', 'reports', 'prediction'].concat(isLeader && joinRequests.length > 0 ? ['requests'] : []).map((t) => (
           <button 
             key={t} 
             className={`btn ${tab === t ? 'primary' : ''}`} 
             onClick={() => setTab(t)}
-            style={{ fontSize: '14px' }}
+            style={{ fontSize: '14px', position: 'relative' }}
           >
             {t === 'overview' ? '📋 개요' : 
              t === 'progress' ? '📈 진행률' :
              t === 'members' ? '👥 멤버' : 
-             t === 'reports' ? '📊 보고서' : '🤖 AI 예측'}
+             t === 'reports' ? '📊 보고서' :
+             t === 'prediction' ? '🤖 AI 예측' : '🔔 가입 신청'}
+            {t === 'requests' && joinRequests.length > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                borderRadius: '50%',
+                width: '20px',
+                height: '20px',
+                fontSize: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {joinRequests.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -591,11 +718,17 @@ export default function TeamDetail() {
                       <td>
                         {m.id !== user?._id && (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            {/* {m.role !== 'LEADER' && (
+                            {m.role !== 'LEADER' && (
                               <button 
                                 className="btn" 
-                                onClick={() => promote(m.id)}
-                                style={{ fontSize: '12px', padding: '4px 8px' }}
+                                onClick={() => changeUserRole(m.id, 'LEADER')}
+                                style={{ 
+                                  fontSize: '12px', 
+                                  padding: '4px 8px',
+                                  backgroundColor: '#fef3c7',
+                                  color: '#92400e',
+                                  border: '1px solid #fed7aa'
+                                }}
                               >
                                 👑 리더로
                               </button>
@@ -603,12 +736,18 @@ export default function TeamDetail() {
                             {m.role !== 'MEMBER' && (
                               <button 
                                 className="btn" 
-                                onClick={() => demote(m.id)}
-                                style={{ fontSize: '12px', padding: '4px 8px' }}
+                                onClick={() => changeUserRole(m.id, 'MEMBER')}
+                                style={{ 
+                                  fontSize: '12px', 
+                                  padding: '4px 8px',
+                                  backgroundColor: '#f3f4f6',
+                                  color: '#374151',
+                                  border: '1px solid #d1d5db'
+                                }}
                               >
                                 👤 멤버로
                               </button>
-                            )} */}
+                            )}
                             <button 
                               className="btn" 
                               onClick={() => remove(m.id)}
@@ -620,7 +759,7 @@ export default function TeamDetail() {
                                 border: '1px solid #fecaca'
                               }}
                             >
-                              🗑️ 제거
+                              🗑️제거
                             </button>
                           </div>
                         )}
@@ -765,6 +904,101 @@ export default function TeamDetail() {
       {/* AI 예측 탭 */}
       {tab === 'prediction' && (
         <ProjectPrediction teamId={id} />
+      )}
+
+      {/* 가입 신청 탭 (리더만) */}
+      {tab === 'requests' && isLeader && (
+        <Section title={`가입 신청 관리 (${joinRequests.length}개)`}>
+          {joinRequests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px', color: '#666' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
+              <p>현재 대기 중인 가입 신청이 없습니다.</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>신청자</th>
+                    <th>이메일</th>
+                    <th>메시지</th>
+                    <th>신청일</th>
+                    <th>관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {joinRequests.map((request) => (
+                    <tr key={request._id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div style={{ 
+                            width: '32px', 
+                            height: '32px', 
+                            borderRadius: '50%', 
+                            backgroundColor: '#667eea',
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}>
+                            {request.userId?.username?.charAt(0)?.toUpperCase() || 'U'}
+                          </div>
+                          {request.userId?.username || '알 수 없음'}
+                        </div>
+                      </td>
+                      <td style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {request.userId?.email || '-'}
+                      </td>
+                      <td style={{ 
+                        maxWidth: '200px', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis', 
+                        whiteSpace: 'nowrap',
+                        fontSize: '14px'
+                      }}>
+                        {request.message || '메시지 없음'}
+                      </td>
+                      <td style={{ fontSize: '14px', color: '#6b7280' }}>
+                        {new Date(request.createdAt).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className="btn"
+                            onClick={() => handleJoinRequest(request._id, 'approve')}
+                            style={{ 
+                              backgroundColor: '#28a745',
+                              color: 'white',
+                              fontSize: '12px',
+                              padding: '4px 8px'
+                            }}
+                          >
+                            ✅ 승인
+                          </button>
+                          <button 
+                            className="btn"
+                            onClick={() => handleJoinRequest(request._id, 'reject')}
+                            style={{ 
+                              backgroundColor: '#dc3545',
+                              color: 'white',
+                              fontSize: '12px',
+                              padding: '4px 8px'
+                            }}
+                          >
+                            ❌ 거절
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
       )}
       
       {canUseExclusiveFeatures && (

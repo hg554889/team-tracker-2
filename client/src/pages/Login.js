@@ -17,6 +17,13 @@ export default function Login(){
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
       
+      // 다른 탭에 로그인 알림
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'token',
+        newValue: res.data.token,
+        oldValue: localStorage.getItem('token')
+      }));
+      
       const user = res.data.user;
       if (user.approvalStatus === 'pending') {
         nav('/approval-pending');

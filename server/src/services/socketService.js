@@ -44,6 +44,16 @@ export class SocketService {
     });
   }
 
+  // 사용자 승인 알림
+  notifyUserApproval(userId, approvalData) {
+    // 해당 사용자에게만 승인 알림 전송
+    this.io.sockets.sockets.forEach((socket) => {
+      if (socket.user && socket.user._id.toString() === userId.toString()) {
+        socket.emit('user-approved', approvalData);
+      }
+    });
+  }
+
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
       console.log(`User ${socket.user.username} connected`);

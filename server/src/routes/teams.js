@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { Team } from '../models/Team.js';
+import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { requireClubAccess, validateTeamAccess } from '../middleware/clubAccess.js';
@@ -38,10 +39,20 @@ router.get('/', requireAuth, requireClubAccess, async (req, res) => {
   if (type) q.type = type;
   if (status) q.status = status;
   if (scope === 'mine') q['members.user'] = req.user.id; // 내 팀만
-  if (keyword) q.$or = [
-    { name: { $regex: keyword, $options: 'i' } },
-    { description: { $regex: keyword, $options: 'i' } }
-  ];
+  if (keyword) {
+    // 멤버 이름으로 검색하기 위해 먼저 해당 이름을 가진 사용자 찾기
+    const users = await User.find({
+      username: { $regex: keyword, $options: 'i' }
+    }).select('_id');
+    const userIds = users.map(u => u._id);
+    
+    q.$or = [
+      { name: { $regex: keyword, $options: 'i' } },
+      { description: { $regex: keyword, $options: 'i' } },
+      { 'members.user': { $in: userIds } },  // 멤버 이름으로 검색
+      { leader: { $in: userIds } }  // 리더 이름으로 검색
+    ];
+  }
 
   // 동아리별 필터링
   if (role === Roles.ADMIN) {
@@ -206,6 +217,90 @@ router.delete('/:id/members/:userId', requireAuth, validateTeamAccess, async (re
   team.members = (team.members || []).filter((m) => m.user?.toString() !== userId);
   await team.save();
   res.json(team);
+});
+
+// 팀 멤버 역할 변경 (LEADER <-> MEMBER)
+router.patch('/:id/change-role', requireAuth, validateTeamAccess, async (req, res, next) => {
+  try {
+    const { id: teamId } = req.params;
+    const { targetUserId, newRole } = req.body;
+    const { id: requesterId, role: requesterRole } = req.user;
+
+    if (!targetUserId || !['LEADER', 'MEMBER'].includes(newRole)) {
+      return res.status(400).json({ error: 'Invalid target user or role' });
+    }
+
+    const team = await Team.findById(teamId).populate('members.user', 'username email');
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // 권한 체크: ADMIN, EXECUTIVE(같은 동아리), 팀 LEADER만 가능
+    const isTeamLeader = String(team.leader) === String(requesterId);
+    const hasAdminAccess = ['ADMIN', 'EXECUTIVE'].includes(requesterRole);
+    
+    if (!hasAdminAccess && !isTeamLeader) {
+      return res.status(403).json({ error: 'Only team leaders or admins can change member roles' });
+    }
+
+    // 대상 멤버 찾기
+    const targetMember = team.members.find(m => String(m.user._id) === String(targetUserId));
+    if (!targetMember) {
+      return res.status(404).json({ error: 'Target user is not a member of this team' });
+    }
+
+    // 자기 자신의 리더 역할을 해제하는 경우, 다른 리더가 있는지 확인
+    if (String(targetUserId) === String(requesterId) && 
+        String(team.leader) === String(requesterId) && 
+        newRole === 'MEMBER') {
+      
+      // 다른 LEADER 역할의 멤버가 있는지 확인
+      const otherLeaders = team.members.filter(m => 
+        m.role === 'LEADER' && String(m.user._id) !== String(targetUserId)
+      );
+
+      if (otherLeaders.length === 0) {
+        return res.status(400).json({ 
+          error: 'Cannot demote yourself when you are the only leader. Please assign another leader first.' 
+        });
+      }
+
+      // 다른 리더 중 첫 번째를 팀 리더로 승격
+      team.leader = otherLeaders[0].user._id;
+    }
+
+    // MEMBER를 LEADER로 승격하는 경우
+    if (newRole === 'LEADER') {
+      // 기존 팀 리더를 MEMBER로 강등
+      if (String(team.leader) !== String(targetUserId)) {
+        const currentLeaderMember = team.members.find(m => String(m.user._id) === String(team.leader));
+        if (currentLeaderMember) {
+          currentLeaderMember.role = 'MEMBER';
+        }
+        
+        // 새로운 팀 리더 설정
+        team.leader = targetUserId;
+      }
+    }
+
+    // 멤버 역할 업데이트
+    targetMember.role = newRole;
+
+    await team.save();
+
+    // 응답 데이터 준비
+    const updatedTeam = await Team.findById(teamId)
+      .populate('leader', 'username email')
+      .populate('members.user', 'username email');
+
+    res.json({
+      message: 'Role changed successfully',
+      team: updatedTeam
+    });
+
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

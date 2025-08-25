@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { listTeams, createTeam } from '../api/teams';
+import { createJoinRequest } from '../api/teamJoinRequests';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useClub } from '../contexts/ClubContext';
@@ -37,6 +38,7 @@ export default function Teams(){
         q: (params.q ?? q) || undefined,
         type: (params.type ?? type) || undefined,
         status: (params.status ?? status) || undefined,
+        scope: params.scope || undefined,  // scope 파라미터 추가
         include: 'leader'  // 리더 정보를 포함하도록 요청
       };
       
@@ -102,6 +104,22 @@ export default function Teams(){
     } catch (e){
       const msg = e?.response?.data?.message || '팀 생성에 실패했습니다.';
       window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg } }));
+    }
+  }
+
+  async function requestToJoinTeam(teamId) {
+    try {
+      await createJoinRequest(teamId, '가입을 신청합니다.');
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'success', msg: '팀 가입 신청이 전송되었습니다.' }
+      }));
+      // 목록 새로고침하여 상태 업데이트
+      await fetchTeams();
+    } catch (error) {
+      const errorMessage = error?.response?.data?.error || '가입 신청에 실패했습니다.';
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'error', msg: errorMessage }
+      }));
     }
   }
 
@@ -239,7 +257,23 @@ export default function Teams(){
                      (t.endAt ? new Date(t.endAt).toLocaleDateString() : '-')}
                   </td>
                   <td style={{ textAlign:'right' }}>
-                    <Link className="btn" to={`/teams/${t._id}`}>자세히</Link>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      {!t.userMembership?.isMember && (
+                        <button 
+                          className="btn" 
+                          onClick={() => requestToJoinTeam(t._id)}
+                          style={{ 
+                            backgroundColor: '#007bff', 
+                            color: 'white', 
+                            fontSize: '12px',
+                            padding: '4px 8px'
+                          }}
+                        >
+                          가입 신청
+                        </button>
+                      )}
+                      <Link className="btn" to={`/teams/${t._id}`}>자세히</Link>
+                    </div>
                   </td>
                 </tr>
               ))}

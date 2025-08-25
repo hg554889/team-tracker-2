@@ -8,3 +8,4 @@ export const createTeam = (data) => client.post('/teams', data);
 export const updateTeam = (id, data) => client.put(`/teams/${id}`, data);
 export const addMember = (id, payload) => client.post(`/teams/${id}/members`, payload);
 export const removeMember = (id, userId) => client.delete(`/teams/${id}/members/${userId}`);
+export const changeRole = (id, data) => client.patch(`/teams/${id}/change-role`, data);
