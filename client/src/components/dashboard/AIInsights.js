@@ -5,59 +5,134 @@ export default function AIInsights({ summary, user }) {
   const kpi = summary?.kpi || {};
   const myTeamsProgress = summary?.myTeamsProgress || [];
   
-  // AI 예측 데이터 (임시)
+  // 실제 데이터 기반 AI 예측 생성
+  const currentProgress = kpi.avgProgress || 0;
+  const trends = summary?.trends || {};
   const predictions = {
-    nextWeekProgress: Math.min(95, (kpi.avgProgress || 0) + 8),
-    completionDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    successProbability: 87
+    nextWeekProgress: Math.min(95, Math.max(0, currentProgress + (trends.avgProgress || 5))),
+    completionDate: getEstimatedCompletionDate(currentProgress, trends.avgProgress),
+    successProbability: getSuccessProbability(currentProgress, trends)
   };
 
-  // AI 개선 제안 (임시 데이터)
-  const improvements = [
-    {
-      type: 'performance',
-      title: '성과 개선',
-      suggestion: '팀 회의 주기를 주 2회로 늘려 소통을 강화하세요.',
-      impact: 'high',
-      effort: 'low'
-    },
-    {
-      type: 'process',
-      title: '프로세스 개선',
-      suggestion: '코드 리뷰 프로세스를 도입하여 품질을 향상시키세요.',
-      impact: 'medium',
-      effort: 'medium'
-    },
-    {
-      type: 'team',
-      title: '팀 운영',
-      suggestion: '팀원들의 업무 분배를 재조정하여 효율성을 높이세요.',
-      impact: 'high',
-      effort: 'high'
-    }
-  ];
+  // 실제 데이터 기반 개선 제안 생성
+  const improvements = generateImprovements(kpi, summary);
 
-  // 리스크 요인 분석 (임시 데이터)
-  const riskFactors = [
-    {
-      factor: '일정 지연 위험',
-      probability: 35,
-      severity: 'medium',
-      description: '현재 진행률을 고려할 때 약간의 지연 가능성이 있습니다.'
-    },
-    {
-      factor: '리소스 부족',
-      probability: 20,
-      severity: 'low',
-      description: '현재 팀 규모로는 목표 달성에 문제없습니다.'
-    },
-    {
-      factor: '품질 이슈',
-      probability: 15,
-      severity: 'low',
-      description: '현재 품질 관리가 잘 되고 있습니다.'
+  // 실제 데이터 기반 리스크 분석
+  const riskFactors = generateRiskFactors(kpi, trends, summary);
+
+  // 완료일 추정 함수
+  function getEstimatedCompletionDate(currentProgress, weeklyTrend) {
+    const remainingProgress = 100 - currentProgress;
+    const weeklyRate = weeklyTrend || (currentProgress > 0 ? currentProgress / 4 : 5); // 기본 주당 5% 증가
+    const weeksRemaining = Math.ceil(remainingProgress / Math.max(1, weeklyRate));
+    return new Date(Date.now() + weeksRemaining * 7 * 24 * 60 * 60 * 1000);
+  }
+
+  // 성공 확률 계산 함수
+  function getSuccessProbability(currentProgress, trends) {
+    let probability = 50; // 기본 확률
+    
+    if (currentProgress >= 80) probability += 30;
+    else if (currentProgress >= 60) probability += 20;
+    else if (currentProgress >= 40) probability += 10;
+    
+    if ((trends.avgProgress || 0) > 0) probability += 15;
+    if ((trends.submitRate || 0) > 0) probability += 10;
+    if ((trends.activeTeams || 0) >= 0) probability += 5;
+    
+    return Math.min(95, Math.max(20, probability));
+  }
+
+  // 개선 제안 생성 함수
+  function generateImprovements(kpi, summary) {
+    const suggestions = [];
+    const trends = summary?.trends || {};
+    
+    if ((kpi.submitRateThisWeek || 0) < 80) {
+      suggestions.push({
+        type: 'performance',
+        title: '보고서 제출률 개선',
+        suggestion: '보고서 제출률을 높이기 위해 미리 알림 시스템을 강화하세요.',
+        impact: 'high',
+        effort: 'low'
+      });
     }
-  ];
+    
+    if ((trends.avgProgress || 0) < 0) {
+      suggestions.push({
+        type: 'process',
+        title: '진행률 개선',
+        suggestion: '팀 회의 주기를 늘리고 중간 점검을 강화하여 진행률을 개선하세요.',
+        impact: 'high',
+        effort: 'medium'
+      });
+    }
+    
+    if ((kpi.avgProgress || 0) > 90) {
+      suggestions.push({
+        type: 'team',
+        title: '우수 성과 유지',
+        suggestion: '현재 높은 성과를 유지하며 팀원들의 동기부여를 지속하세요.',
+        impact: 'medium',
+        effort: 'low'
+      });
+    } else {
+      suggestions.push({
+        type: 'team',
+        title: '팀 협업 강화',
+        suggestion: '팀원 간 소통을 늘리고 업무 분배를 최적화하여 효율성을 높이세요.',
+        impact: 'medium',
+        effort: 'medium'
+      });
+    }
+    
+    return suggestions;
+  }
+
+  // 리스크 요인 생성 함수
+  function generateRiskFactors(kpi, trends, summary) {
+    const risks = [];
+    const currentProgress = kpi.avgProgress || 0;
+    const weeklyTrend = trends.avgProgress || 0;
+    
+    // 일정 지연 위험
+    let delayRisk = 10;
+    if (currentProgress < 40) delayRisk += 30;
+    else if (currentProgress < 70) delayRisk += 15;
+    if (weeklyTrend < 0) delayRisk += 20;
+    
+    risks.push({
+      factor: '일정 지연 위험',
+      probability: Math.min(80, delayRisk),
+      severity: delayRisk > 50 ? 'high' : delayRisk > 25 ? 'medium' : 'low',
+      description: `현재 진행률 ${currentProgress.toFixed(1)}%를 고려한 지연 가능성 분석입니다.`
+    });
+    
+    // 팀 활동성 위험
+    const submitRate = kpi.submitRateThisWeek || 0;
+    let activityRisk = submitRate < 50 ? 40 : submitRate < 80 ? 20 : 10;
+    
+    risks.push({
+      factor: '팀 활동성 저하',
+      probability: activityRisk,
+      severity: activityRisk > 35 ? 'high' : activityRisk > 20 ? 'medium' : 'low',
+      description: `보고서 제출률 ${submitRate}% 기준으로 분석한 팀 활동성입니다.`
+    });
+    
+    // 성과 품질 위험
+    let qualityRisk = 15;
+    if (currentProgress < 30) qualityRisk += 25;
+    else if (currentProgress > 90 && weeklyTrend > 10) qualityRisk += 15; // 너무 빨라도 품질 위험
+    
+    risks.push({
+      factor: '성과 품질 관리',
+      probability: qualityRisk,
+      severity: qualityRisk > 30 ? 'medium' : 'low',
+      description: '현재 진행 속도와 품질 관리 균형을 분석한 결과입니다.'
+    });
+    
+    return risks;
+  }
 
   const getRiskColor = (severity) => {
     switch (severity) {

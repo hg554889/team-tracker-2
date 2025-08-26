@@ -6,61 +6,64 @@ export default function ActionNeeded({ summary }) {
   const kpi = summary?.kpi || {};
   const dueSoon = summary?.dueSoon || [];
 
-  // 내가 처리해야 할 작업들 (임시 데이터)
-  const myTasks = [
-    {
-      id: 1,
-      title: '주간 보고서 작성',
-      type: 'report',
-      priority: 'high',
-      dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1일 후
-      teamName: '프론트엔드팀'
-    },
-    {
-      id: 2,
-      title: '코드 리뷰 완료',
-      type: 'review',
-      priority: 'medium',
-      dueAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2일 후
-      teamName: '개발팀'
-    },
-    {
-      id: 3,
-      title: '테스트 케이스 작성',
-      type: 'task',
-      priority: 'low',
-      dueAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5일 후
-      teamName: 'QA팀'
-    }
-  ];
+  // 실제 데이터 사용: 마감 임박 보고서를 내 작업으로 표시
+  const myTasks = dueSoon.map(report => ({
+    id: report._id,
+    title: `보고서 작성: ${report.title || 'Untitled Report'}`,
+    type: 'report',
+    priority: getDuePriority(report.dueAt),
+    dueAt: new Date(report.dueAt),
+    teamName: report.team
+  })).slice(0, 3);
 
-  // 최근 알림들 (임시 데이터)
-  const recentNotifications = [
-    {
-      id: 1,
-      type: 'mention',
-      title: '김리더님이 회의에서 언급했습니다',
-      message: '다음 스프린트 계획에 대해 의견을 부탁드립니다.',
-      timestamp: '30분 전',
-      isRead: false
-    },
-    {
-      id: 2,
-      type: 'deadline',
-      title: '마감일이 임박했습니다',
-      message: '프로젝트 진행 보고서 제출이 내일까지입니다.',
-      timestamp: '2시간 전',
-      isRead: false
-    },
-    {
-      id: 3,
-      type: 'team_update',
-      title: '팀 업데이트',
-      message: '새로운 팀원이 합류했습니다.',
-      timestamp: '4시간 전',
-      isRead: true
-    }
-  ];
+  // 실제 데이터 사용: summary의 notifications를 알림으로 표시
+  const recentNotifications = (summary?.notifications || []).map((notif, index) => ({
+    id: index + 1,
+    type: getNotificationType(notif.type),
+    title: getNotificationTitle(notif.type),
+    message: notif.message,
+    timestamp: getRelativeTime(new Date()),
+    isRead: false
+  })).slice(0, 5);
+
+  const getDuePriority = (dueDate) => {
+    const now = new Date();
+    const diffTime = new Date(dueDate) - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 1) return 'high';
+    if (diffDays <= 3) return 'medium';
+    return 'low';
+  };
+
+  const getNotificationType = (type) => {
+    const typeMap = {
+      'approval': 'team_update',
+      'role_request': 'team_update',
+      'overdue': 'deadline'
+    };
+    return typeMap[type] || 'mention';
+  };
+
+  const getNotificationTitle = (type) => {
+    const titleMap = {
+      'approval': '승인 요청 알림',
+      'role_request': '권한 요청 알림',
+      'overdue': '마감일 지연 알림'
+    };
+    return titleMap[type] || '새 알림';
+  };
+
+  const getRelativeTime = (date) => {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMins / 60);
+    
+    if (diffMins < 60) return `${diffMins}분 전`;
+    if (diffHours < 24) return `${diffHours}시간 전`;
+    return `${Math.floor(diffHours / 24)}일 전`;
+  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {
