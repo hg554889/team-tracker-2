@@ -7,8 +7,8 @@ router.get('/', async (_req, res) => {
   const items = await Club.find();
   if (items.length === 0) {
     await Club.insertMany([
-      { key: 'CLUB_A', name: 'Aunae' },
-      { key: 'CLUB_B', name: 'KIS' }
+      { key: 'Aunae', name: 'Aunae' },
+      { key: 'KIS', name: 'KIS' }
     ]);
   }
   const list = await Club.find().sort({ name: 1 });

@@ -28,8 +28,8 @@ export async function migrateClubData() {
           );
           console.log(`[MIGRATION] Updated report ${report._id} with clubId: ${author.clubId}`);
         } else {
-          // 작성자의 clubId가 없으면 기본값 설정
-          const defaultClubId = 'default';
+          // 작성자의 clubId가 없으면 Aunae로 설정
+          const defaultClubId = 'Aunae';
           await Report.updateOne(
             { _id: report._id },
             { $set: { clubId: defaultClubId } }
@@ -77,8 +77,8 @@ export async function migrateClubData() {
             );
             console.log(`[MIGRATION] Updated team ${team._id} with member's clubId: ${clubId}`);
           } else {
-            // 모든 멤버가 clubId가 없으면 기본값 설정
-            const defaultClubId = 'default';
+            // 모든 멤버가 clubId가 없으면 Aunae로 설정
+            const defaultClubId = 'Aunae';
             await Team.updateOne(
               { _id: team._id },
               { $set: { clubId: defaultClubId } }
@@ -104,7 +104,7 @@ export async function migrateClubData() {
 
     for (const user of usersNeedingClubId) {
       try {
-        const defaultClubId = 'default';
+        const defaultClubId = 'Aunae';
         await User.updateOne(
           { _id: user._id },
           { $set: { clubId: defaultClubId } }

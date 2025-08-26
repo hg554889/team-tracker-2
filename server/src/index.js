@@ -87,7 +87,15 @@ app.use('/api/team-issues', teamIssueRoutes);
 app.use(errorHandler);
 
 // ========== 서버 시작 ==========
-connectDB().then(() => {
+connectDB().then(async () => {
+  // 데이터베이스 정리 작업
+  try {
+    const { cleanupClubData } = await import('./utils/cleanupClubs.js');
+    await cleanupClubData();
+  } catch (error) {
+    console.warn('[CLEANUP] Club cleanup failed:', error.message);
+  }
+  
   initializeSocket(httpServer);
   
   httpServer.listen(env.PORT, () => {
