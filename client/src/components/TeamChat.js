@@ -13,8 +13,9 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
   const { socket, isConnected } = useSocket();
   const { user } = useAuth();
 
+  // 팀 채팅방에 입장하고 소켓 이벤트 설정
   useEffect(() => {
-    if (socket && teamId && isOpen) {
+    if (socket && teamId) {
       socket.emit('join-team', teamId);
 
       socket.on('recent-messages', (recentMessages) => {
@@ -78,7 +79,7 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
         socket.off('error');
       };
     }
-  }, [socket, teamId, isOpen, onToggle]);
+  }, [socket, teamId, onToggle]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
