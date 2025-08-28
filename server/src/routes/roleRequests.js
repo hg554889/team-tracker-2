@@ -3,6 +3,7 @@ import { RoleRequest } from '../models/RoleRequest.js';
 import { User } from '../models/User.js';
 import { requireAuth } from '../middleware/auth.js';
 import { Roles } from '../utils/roles.js';
+import { signJwt } from '../utils/jwt.js';
 
 const router = Router();
 
@@ -132,16 +133,28 @@ router.post('/:requestId/process', requireAuth, async (req, res, next) => {
     
     await roleRequest.save();
     
-    // If approved, update user's role
+    // If approved, update user's role and issue new JWT token
+    let newToken = null;
     if (action === 'approve') {
-      await User.findByIdAndUpdate(roleRequest.userId._id, {
+      const updatedUser = await User.findByIdAndUpdate(roleRequest.userId._id, {
         role: roleRequest.requestedRole
+      }, { new: true });
+      
+      // Issue new JWT token with updated role
+      newToken = signJwt({
+        id: updatedUser._id,
+        role: updatedUser.role,
+        clubId: updatedUser.clubId
       });
     }
     
     res.json({ 
       message: `Role request ${action}d successfully`,
-      request: roleRequest 
+      request: roleRequest,
+      ...(newToken && { 
+        newToken, 
+        message: `역할이 ${roleRequest.requestedRole}로 승격되었습니다. 페이지를 새로고침해주세요.` 
+      })
     });
   } catch (e) { 
     next(e); 

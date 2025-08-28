@@ -69,11 +69,22 @@ export default function ApprovalRequests() {
 
   const handleRoleRequestProcess = async (requestId, action) => {
     try {
-      await processRoleRequest(requestId, action);
-      window.dispatchEvent(new CustomEvent('toast', { 
-        detail: { type: 'success', msg: `권한 요청이 ${action === 'approve' ? '승인' : '거절'}되었습니다.` } 
-      }));
-      loadRoleRequests();
+      const { data } = await processRoleRequest(requestId, action);
+      
+      // 서버에서 새 토큰을 반환한 경우 처리
+      if (data.newToken) {
+        localStorage.setItem('token', data.newToken);
+        window.dispatchEvent(new CustomEvent('toast', { 
+          detail: { type: 'info', msg: data.message || '권한이 변경되었습니다. 페이지를 새로고침합니다.' } 
+        }));
+        // 잠시 후 페이지 새로고침
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        window.dispatchEvent(new CustomEvent('toast', { 
+          detail: { type: 'success', msg: `권한 요청이 ${action === 'approve' ? '승인' : '거절'}되었습니다.` } 
+        }));
+        loadRoleRequests();
+      }
     } catch (err) {
       window.dispatchEvent(new CustomEvent('toast', { 
         detail: { type: 'error', msg: '권한 요청 처리에 실패했습니다.' } 
