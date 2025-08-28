@@ -11,15 +11,16 @@ const router = Router();
 router.post('/signup', validate(signupSchema), async (req, res, next) => {
   try {
     const { email, username, password, studentId, clubId } = req.body;
-    const exists = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+    const exists = await User.findOne({ email: normalizedEmail });
     if (exists) return res.status(409).json({ error: 'EmailInUse' });
     
     const studentExists = await User.findOne({ studentId });
     if (studentExists) return res.status(409).json({ error: 'StudentIdInUse' });
     
     const user = await User.create({ 
-      email, 
-      username, 
+      email: normalizedEmail, 
+      username: username.trim(), 
       password, 
       studentId,
       clubId,
@@ -39,8 +40,8 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
       token, 
       user: { 
         _id: user.id, 
-        email, 
-        username, 
+        email: normalizedEmail, 
+        username: username.trim(), 
         studentId,
         role: user.role, 
         clubId: user.clubId,
@@ -55,7 +56,8 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
 router.post('/login', loginLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ error: 'InvalidCredentials' });
     }

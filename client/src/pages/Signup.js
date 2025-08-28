@@ -35,7 +35,7 @@ export default function Signup(){
     }
     
     try {
-      const res = await signup({ email, username, password, studentId: parseInt(studentId), clubId });
+      const res = await signup({ email, username, password, studentId: studentId.trim(), clubId });
       localStorage.setItem('token', res.data.token);
       setUser(res.data.user);
       
@@ -87,10 +87,10 @@ export default function Signup(){
               <label>학번</label>
               <input 
                 className="auth-input" 
-                type="number"
+                type="text"
                 value={studentId} 
                 onChange={e=>setStudentId(e.target.value)}
-                placeholder="예: 20241234"
+                placeholder="예: 20241234 또는 CS2024-001"
                 required
               />
             </div>

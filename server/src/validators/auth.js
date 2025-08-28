@@ -5,7 +5,7 @@ export const signupSchema = z.object({
     email: z.string().email(),
     username: z.string().min(2).max(30),
     password: z.string().min(8),
-    studentId: z.number().int().positive(),
+    studentId: z.string().min(1).max(20), // 문자열로 변경, 학번 형식 다양함
     clubId: z.string().min(1)
   })
 });
@@ -13,7 +13,7 @@ export const signupSchema = z.object({
 export const updateUserInfoSchema = z.object({
   body: z.object({
     username: z.string().min(2).max(30).optional(),
-    studentId: z.number().int().positive().optional()
+    studentId: z.string().min(1).max(20).optional() // 문자열로 변경
   })
 });
 

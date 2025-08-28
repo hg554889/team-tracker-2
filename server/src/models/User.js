@@ -6,7 +6,7 @@ const UserSchema = new Schema({
   email: { type: String, required: true, unique: true, index: true },
   username: { type: String, required: true },
   password: { type: String, required: true },
-  studentId: { type: Number, required: false },
+  studentId: { type: String, required: false, index: true }, // 학번 중복 검사를 위한 인덱스 추가
   role: { type: String, enum: Object.values(Roles), default: Roles.MEMBER },
   clubId: { type: String, index: true },
   isApproved: { type: Boolean, default: false },
