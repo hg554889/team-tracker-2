@@ -1,8 +1,8 @@
 // 임시 디버깅 스크립트
 import mongoose from 'mongoose';
-import { User } from './server/src/models/User.js';
-import { Team } from './server/src/models/Team.js';
-import { Report } from './server/src/models/Report.js';
+import { User } from './src/models/User.js';
+import { Team } from './src/models/Team.js';
+import { Report } from './src/models/Report.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sunjin5554:8WVxE5lUwBF4FKnE@cluster0.ffmkimv.mongodb.net/team-tracker-ver2';
 

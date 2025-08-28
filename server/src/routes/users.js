@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { requireClubAccess } from '../middleware/clubAccess.js';
 import { User } from '../models/User.js';
 import { Roles } from '../utils/roles.js';
+import { signJwt } from '../utils/jwt.js';
 
 const router = Router();
 
@@ -87,7 +88,21 @@ router.put('/:id', requireAuth, async (req, res) => {
   if (clubId !== undefined) update.clubId = clubId;
   if (username) update.username = username;
   const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
-  res.json(user);
+  
+  // 역할이나 동아리가 변경된 경우 새 JWT 토큰 발급
+  let newToken = null;
+  if (role || clubId !== undefined) {
+    newToken = signJwt({
+      id: user._id,
+      role: user.role,
+      clubId: user.clubId
+    });
+  }
+  
+  res.json({ 
+    user,
+    ...(newToken && { newToken, message: '역할이 변경되었습니다. 페이지를 새로고침해주세요.' })
+  });
 });
 
 // ✅ 내 비밀번호 변경 (현재 비번 확인 → 새 비번 저장)
