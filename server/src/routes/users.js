@@ -4,6 +4,7 @@ import { requireClubAccess } from '../middleware/clubAccess.js';
 import { User } from '../models/User.js';
 import { Roles } from '../utils/roles.js';
 import { signJwt } from '../utils/jwt.js';
+import { getSocketService } from '../services/socketService.js';
 
 const router = Router();
 
@@ -89,19 +90,25 @@ router.put('/:id', requireAuth, async (req, res) => {
   if (username) update.username = username;
   const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
   
-  // 역할이나 동아리가 변경된 경우 새 JWT 토큰 발급
-  let newToken = null;
+  // 역할이나 동아리가 변경된 경우 변경된 사용자를 위한 새 JWT 토큰 발급
+  let userToken = null;
   if (role || clubId !== undefined) {
-    newToken = signJwt({
+    userToken = signJwt({
       id: user._id,
       role: user.role,
       clubId: user.clubId
     });
+
+    // 소켓을 통해 해당 사용자에게 권한 변경 알림
+    const socketService = getSocketService();
+    if (socketService) {
+      socketService.notifyRoleUpdate(user._id, userToken, user);
+    }
   }
   
   res.json({ 
     user,
-    ...(newToken && { newToken, message: '역할이 변경되었습니다. 페이지를 새로고침해주세요.' })
+    message: '사용자 정보가 업데이트되었습니다.'
   });
 });
 

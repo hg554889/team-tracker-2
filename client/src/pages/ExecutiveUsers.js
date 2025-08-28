@@ -52,20 +52,10 @@ export default function ExecutiveUsers(){
     try {
       const { data } = await adminUpdateUser(userId, { role, clubId: user.clubId });
       
-      // 서버에서 새 토큰을 반환한 경우 처리
-      if (data.newToken) {
-        localStorage.setItem('token', data.newToken);
-        window.dispatchEvent(new CustomEvent('toast', { 
-          detail: { type: 'info', msg: data.message || '권한이 변경되었습니다. 페이지를 새로고침합니다.' } 
-        }));
-        // 잠시 후 페이지 새로고침
-        setTimeout(() => window.location.reload(), 2000);
-      } else {
-        setUsers(prev => prev.map(u => u._id === userId ? (data.user || data) : u));
-        window.dispatchEvent(new CustomEvent('toast', { 
-          detail: { type: 'success', msg: '권한이 업데이트되었습니다.' } 
-        }));
-      }
+      setUsers(prev => prev.map(u => u._id === userId ? (data.user || data) : u));
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: data.message || '권한이 업데이트되었습니다.' } 
+      }));
     } catch (error) {
       console.error('Failed to update user:', error);
       window.dispatchEvent(new CustomEvent('toast', { 

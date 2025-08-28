@@ -65,6 +65,28 @@ export const SocketProvider = ({ children }) => {
           window.dispatchEvent(new CustomEvent('userUpdated'));
         });
 
+        // 권한 변경 알림 처리
+        newSocket.on('role-updated', (data) => {
+          console.log('Role updated:', data);
+          
+          // 새 토큰으로 교체
+          localStorage.setItem('token', data.newToken);
+          
+          // 사용자 정보 새로고침
+          refreshUser();
+          
+          // 성공 메시지 표시
+          window.dispatchEvent(new CustomEvent('toast', {
+            detail: {
+              type: 'success',
+              msg: '권한이 변경되었습니다. 새로고침하지 않고도 새 권한이 적용됩니다.'
+            }
+          }));
+          
+          // 사용자 업데이트 이벤트 발생
+          window.dispatchEvent(new CustomEvent('userUpdated'));
+        });
+
         setSocket(newSocket);
 
         return () => {

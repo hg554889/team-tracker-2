@@ -40,20 +40,10 @@ export default function AdminUsers(){
       const club = document.getElementById(`club-${idx}`).value;
       const { data } = await adminUpdateUser(u._id, { role, clubId: club });
       
-      // 서버에서 새 토큰을 반환한 경우 처리
-      if (data.newToken) {
-        localStorage.setItem('token', data.newToken);
-        window.dispatchEvent(new CustomEvent('toast', { 
-          detail: { type: 'info', msg: data.message || '역할이 변경되었습니다. 페이지를 새로고침합니다.' } 
-        }));
-        // 잠시 후 페이지 새로고침
-        setTimeout(() => window.location.reload(), 2000);
-      } else {
-        setUsers(prev=> prev.map(x=> x._id===u._id? data.user || data: x));
-        window.dispatchEvent(new CustomEvent('toast', { 
-          detail: { type: 'success', msg: '사용자 정보가 업데이트되었습니다.' } 
-        }));
-      }
+      setUsers(prev=> prev.map(x=> x._id===u._id? data.user || data: x));
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'success', msg: data.message || '사용자 정보가 업데이트되었습니다.' } 
+      }));
     } catch (error) {
       console.error('Failed to update user:', error);
       const errorMsg = error?.response?.data?.message || '사용자 정보 업데이트에 실패했습니다.';
