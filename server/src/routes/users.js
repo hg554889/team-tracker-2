@@ -81,13 +81,43 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 router.put('/:id', requireAuth, async (req, res) => {
-  const me = await User.findById(req.user.id).select('role');
-  if (!me || me.role !== Roles.ADMIN) return res.status(403).json({ error: 'Forbidden' });
+  const me = await User.findById(req.user.id).select('role clubId');
+  if (!me || (me.role !== Roles.ADMIN && me.role !== Roles.EXECUTIVE)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  
   const { role, clubId, username } = req.body;
   const update = {};
-  if (role) update.role = role;
-  if (clubId !== undefined) update.clubId = clubId;
-  if (username) update.username = username;
+  
+  // EXECUTIVE는 자신의 동아리 내에서만, MEMBER/LEADER 권한만 변경 가능
+  if (me.role === Roles.EXECUTIVE) {
+    const targetUser = await User.findById(req.params.id).select('clubId role');
+    if (!targetUser) return res.status(404).json({ error: 'User not found' });
+    
+    // 동일 동아리 체크
+    if (targetUser.clubId?.toString() !== me.clubId?.toString()) {
+      return res.status(403).json({ error: 'Can only update users in your club' });
+    }
+    
+    // 권한 제한: MEMBER, LEADER만 변경 가능
+    if (role && !['MEMBER', 'LEADER'].includes(role)) {
+      return res.status(403).json({ error: 'Invalid role for executive' });
+    }
+    
+    // EXECUTIVE/ADMIN 사용자는 변경 불가
+    if (targetUser.role === Roles.EXECUTIVE || targetUser.role === Roles.ADMIN) {
+      return res.status(403).json({ error: 'Cannot update executive or admin users' });
+    }
+    
+    if (role) update.role = role;
+    // EXECUTIVE는 clubId, username 변경 불가
+  } else if (me.role === Roles.ADMIN) {
+    // ADMIN은 모든 권한
+    if (role) update.role = role;
+    if (clubId !== undefined) update.clubId = clubId;
+    if (username) update.username = username;
+  }
+  
   const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
   
   // 역할이나 동아리가 변경된 경우 변경된 사용자를 위한 새 JWT 토큰 발급

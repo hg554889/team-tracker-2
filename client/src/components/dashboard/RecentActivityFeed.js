@@ -4,102 +4,153 @@ import { useNavigate } from 'react-router-dom';
 export default function RecentActivityFeed({ summary, user }) {
   const navigate = useNavigate();
 
-  // 최근 활동 피드 데이터 (임시)
-  const activities = [
-    {
-      id: 1,
-      type: 'report_submitted',
-      actor: '김개발',
-      action: '보고서를 제출했습니다',
-      target: '주간 프로젝트 보고서',
-      team: '프론트엔드팀',
-      timestamp: '30분 전',
-      icon: '📝',
-      color: '#2ecc71'
-    },
-    {
-      id: 2,
-      type: 'team_joined',
-      actor: '박신입',
-      action: '팀에 합류했습니다',
-      target: null,
-      team: '백엔드팀',
-      timestamp: '1시간 전',
-      icon: '👋',
-      color: '#3498db'
-    },
-    {
-      id: 3,
-      type: 'comment_added',
-      actor: '이리더',
-      action: '댓글을 남겼습니다',
-      target: '월간 성과 보고서',
-      team: '기획팀',
-      timestamp: '2시간 전',
-      icon: '💬',
-      color: '#9b59b6'
-    },
-    {
-      id: 4,
-      type: 'task_completed',
-      actor: '최개발',
-      action: '작업을 완료했습니다',
-      target: 'API 개발',
-      team: '백엔드팀',
-      timestamp: '3시간 전',
-      icon: '✅',
-      color: '#2ecc71'
-    },
-    {
-      id: 5,
-      type: 'meeting_scheduled',
-      actor: '김팀장',
-      action: '회의를 예약했습니다',
-      target: '스프린트 계획 회의',
-      team: '전체',
-      timestamp: '4시간 전',
-      icon: '📅',
-      color: '#f39c12'
-    },
-    {
-      id: 6,
-      type: 'goal_achieved',
-      actor: 'UI팀',
-      action: '목표를 달성했습니다',
-      target: '90% 진행률 달성',
-      team: 'UI팀',
-      timestamp: '6시간 전',
-      icon: '🎯',
-      color: '#e67e22'
-    },
-    {
-      id: 7,
-      type: 'review_requested',
-      actor: '박개발',
-      action: '리뷰를 요청했습니다',
-      target: '사용자 인증 모듈',
-      team: '보안팀',
-      timestamp: '8시간 전',
-      icon: '👀',
-      color: '#34495e'
-    },
-    {
-      id: 8,
-      type: 'milestone_reached',
-      actor: '프로젝트 A',
-      action: '마일스톤에 도달했습니다',
-      target: 'Alpha 버전 완료',
-      team: '개발팀',
-      timestamp: '12시간 전',
-      icon: '🚀',
-      color: '#e74c3c'
+  // 실제 데이터에서 최근 활동 생성
+  const generateActivitiesFromSummary = (summary) => {
+    const activities = [];
+    const now = new Date();
+
+    // summary에서 실제 데이터 추출
+    const myTeamsProgress = summary?.myTeamsProgress || [];
+    const additionalStats = summary?.additionalStats || {};
+    const recentTeamActivities = additionalStats.recentTeamActivities || [];
+    const kpi = summary?.kpi || {};
+
+    // 실제 팀 활동들을 기반으로 활동 피드 생성
+    if (recentTeamActivities.length > 0) {
+      recentTeamActivities.slice(0, 5).forEach((activity, index) => {
+        activities.push({
+          id: `real_${index}`,
+          type: activity.type,
+          actor: activity.message.includes('님이') ? activity.message.split('님이')[0] : user?.username || '사용자',
+          action: activity.type === 'report_submitted' ? '보고서를 제출했습니다' : '활동했습니다',
+          target: activity.teamName || '프로젝트',
+          team: activity.teamName || '팀',
+          timestamp: getTimeAgo(new Date(activity.timestamp)),
+          icon: getActivityIcon(activity.type),
+          color: getActivityColor(activity.type)
+        });
+      });
     }
-  ];
+
+    // 내가 참여한 팀들의 가상 최근 활동 생성
+    myTeamsProgress.forEach((team, index) => {
+      if (index < 3) { // 최대 3개 팀의 활동만
+        const progress = team.history?.[team.history.length - 1] || 0;
+        const timeOffset = Math.random() * 24; // 24시간 내 랜덤
+        
+        activities.push({
+          id: `team_${team.teamId}`,
+          type: 'progress_update',
+          actor: user?.username || '사용자',
+          action: progress >= 80 ? '우수한 성과를 달성했습니다' : '진행률을 업데이트했습니다',
+          target: `${progress}% 달성`,
+          team: team.teamName,
+          timestamp: getTimeAgo(new Date(now.getTime() - timeOffset * 60 * 60 * 1000)),
+          icon: progress >= 80 ? '🎯' : '📊',
+          color: progress >= 80 ? '#2ecc71' : '#3498db'
+        });
+      }
+    });
+
+    // 개인 활동 기반 활동 생성
+    if (kpi.myReportsThisWeek > 0) {
+      activities.push({
+        id: 'my_reports',
+        type: 'report_submitted',
+        actor: user?.username || '나',
+        action: '이번 주 보고서를 제출했습니다',
+        target: `${kpi.myReportsThisWeek}건의 보고서`,
+        team: '내 활동',
+        timestamp: getTimeAgo(new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000)),
+        icon: '📝',
+        color: '#2ecc71'
+      });
+    }
+
+    // 기본 활동이 없으면 환영 메시지
+    if (activities.length === 0) {
+      activities.push({
+        id: 'welcome',
+        type: 'welcome',
+        actor: '시스템',
+        action: '환영합니다!',
+        target: '첫 활동을 시작해보세요',
+        team: '전체',
+        timestamp: '방금 전',
+        icon: '👋',
+        color: '#3498db'
+      });
+    }
+
+    return activities.sort((a, b) => getTimeValue(a.timestamp) - getTimeValue(b.timestamp));
+  };
+
+  // 시간 차이 계산
+  const getTimeAgo = (date) => {
+    const now = new Date();
+    const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return '방금 전';
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}시간 전`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}일 전`;
+    
+    return `${Math.floor(diffInDays / 7)}주 전`;
+  };
+
+  // 활동 타입별 아이콘
+  const getActivityIcon = (type) => {
+    const icons = {
+      report_submitted: '📝',
+      progress_update: '📊',
+      team_joined: '👋',
+      welcome: '👋',
+      task_completed: '✅',
+      goal_achieved: '🎯'
+    };
+    return icons[type] || '📱';
+  };
+
+  // 활동 타입별 색상
+  const getActivityColor = (type) => {
+    const colors = {
+      report_submitted: '#2ecc71',
+      progress_update: '#3498db',
+      team_joined: '#9b59b6',
+      welcome: '#3498db',
+      task_completed: '#2ecc71',
+      goal_achieved: '#e67e22'
+    };
+    return colors[type] || '#636e72';
+  };
+
+  // 시간 값으로 변환 (정렬용)
+  const getTimeValue = (timeStr) => {
+    if (timeStr.includes('방금')) return 0;
+    if (timeStr.includes('분 전')) return parseInt(timeStr);
+    if (timeStr.includes('시간 전')) return parseInt(timeStr) * 60;
+    if (timeStr.includes('일 전')) return parseInt(timeStr) * 60 * 24;
+    if (timeStr.includes('주 전')) return parseInt(timeStr) * 60 * 24 * 7;
+    return 9999;
+  };
+
+  // 실제 데이터에서 활동 생성
+  const activities = generateActivitiesFromSummary(summary);
 
   // 활동 타입별 그룹화
   const activityGroups = {
-    today: activities.filter(a => ['30분 전', '1시간 전', '2시간 전', '3시간 전', '4시간 전', '6시간 전', '8시간 전'].includes(a.timestamp)),
-    yesterday: activities.filter(a => a.timestamp === '12시간 전')
+    today: activities.filter(a => {
+      const timeValue = getTimeValue(a.timestamp);
+      return timeValue < 24 * 60; // 24시간 내
+    }),
+    yesterday: activities.filter(a => {
+      const timeValue = getTimeValue(a.timestamp);
+      return timeValue >= 24 * 60 && timeValue < 48 * 60; // 24-48시간 전
+    })
   };
 
   const getActivityDescription = (activity) => {

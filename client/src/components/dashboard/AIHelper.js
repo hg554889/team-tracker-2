@@ -374,35 +374,28 @@ export default function AIHelper({ summary, user }) {
           </div>
         )}
 
-        {/* AI 채팅 버튼 */}
+        {/* AI 채팅 안내 */}
         <div style={{
           marginTop: '20px',
           textAlign: 'center'
         }}>
-          <button style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
+          <div style={{
+            background: '#f8f9fa',
+            color: '#636e72',
+            border: '1px solid #e9ecef',
             borderRadius: '20px',
             padding: '10px 16px',
             fontSize: '12px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'transform 0.2s ease',
+            fontWeight: '500',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            margin: '0 auto'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
+            margin: '0 auto',
+            opacity: '0.7'
           }}>
             <span>💬</span>
-            <span>AI와 직접 대화하기</span>
-          </button>
+            <span>AI 채팅 기능 준비 중입니다</span>
+          </div>
         </div>
 
         {/* AI 학습 상태 */}

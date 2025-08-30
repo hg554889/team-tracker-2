@@ -7,6 +7,7 @@ import { requireClubAccess, validateTeamAccess } from '../middleware/clubAccess.
 import { teamCreateSchema, teamMemberSchema } from '../validators/teams.js';
 import { getPagination } from '../utils/pagination.js';
 import { Roles } from '../utils/roles.js';
+import { TeamJoinRequest } from '../models/TeamJoinRequest.js';
 
 const router = Router();
 
@@ -300,6 +301,115 @@ router.patch('/:id/change-role', requireAuth, validateTeamAccess, async (req, re
 
   } catch (error) {
     next(error);
+  }
+});
+
+// 참여 가능한 팀 조회 (내가 속하지 않은 팀들)
+router.get('/available', requireAuth, requireClubAccess, async (req, res) => {
+  try {
+    const { role, clubId: userClubId } = req.user;
+    const userId = req.user.id;
+    
+    const query = {};
+    
+    // 동아리별 필터링
+    if (role === Roles.ADMIN) {
+      // ADMIN은 모든 동아리의 팀 조회 가능
+      const requestedClubId = req.query.clubId;
+      if (requestedClubId) {
+        query.clubId = requestedClubId;
+      }
+    } else {
+      // 다른 역할은 본인 동아리만
+      query.clubId = userClubId;
+    }
+    
+    // 내가 속하지 않은 팀들만 조회
+    const teams = await Team.find(query)
+      .populate('leader', 'username')
+      .sort({ createdAt: -1 });
+    
+    // 내가 멤버로 속한 팀 제외
+    const availableTeams = teams.filter(team => {
+      const isLeader = String(team.leader._id) === String(userId);
+      const isMember = team.members?.some(m => String(m.user) === String(userId));
+      return !isLeader && !isMember;
+    });
+    
+    // 응답 데이터 정리
+    const result = availableTeams.map(team => ({
+      _id: team._id,
+      name: team.name,
+      description: team.description,
+      type: team.type,
+      memberCount: team.members?.length || 0,
+      leaderName: team.leader?.username,
+      createdAt: team.createdAt
+    }));
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to load available teams:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// 팀 참여 요청
+router.post('/join-request', requireAuth, requireClubAccess, async (req, res) => {
+  try {
+    const { teamId, message = '' } = req.body;
+    const { id: userId, clubId: userClubId } = req.user;
+
+    if (!teamId) {
+      return res.status(400).json({ error: 'teamId is required' });
+    }
+
+    // 팀 존재 여부 및 권한 확인
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ error: 'Team not found' });
+    }
+
+    // 동일한 동아리인지 확인
+    if (team.clubId !== userClubId) {
+      return res.status(403).json({ error: 'Can only join teams in your club' });
+    }
+
+    // 이미 팀 멤버인지 확인
+    const isLeader = String(team.leader) === String(userId);
+    const isMember = team.members?.some(m => String(m.user) === String(userId));
+    
+    if (isLeader || isMember) {
+      return res.status(400).json({ error: 'Already a member of this team' });
+    }
+
+    // 이미 요청했는지 확인
+    const existingRequest = await TeamJoinRequest.findOne({
+      userId,
+      teamId,
+      status: 'pending'
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({ error: 'Join request already pending' });
+    }
+
+    // 팀 참여 요청 생성
+    const joinRequest = await TeamJoinRequest.create({
+      userId,
+      teamId,
+      message,
+      clubId: userClubId
+    });
+
+    res.status(201).json({
+      message: 'Join request submitted successfully',
+      request: joinRequest
+    });
+
+  } catch (error) {
+    console.error('Failed to create join request:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 

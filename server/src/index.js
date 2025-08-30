@@ -29,6 +29,9 @@ import teamJoinRequestRoutes from './routes/teamJoinRequests.js';
 import predictionRoutes from './routes/predictions.js';
 import inquiryRoutes from './routes/inquiries.js';
 import teamIssueRoutes from './routes/teamIssues.js';
+import adminClubRoutes from './routes/adminClubs.js';
+import adminSettingsRoutes from './routes/adminSettings.js';
+import adminAnalyticsRoutes from './routes/adminAnalytics.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -82,6 +85,9 @@ app.use('/api/team-join-requests', teamJoinRequestRoutes);
 app.use('/api/predictions', predictionRoutes);
 app.use('/api/inquiries', inquiryRoutes);
 app.use('/api/team-issues', teamIssueRoutes);
+app.use('/api/admin/clubs', adminClubRoutes);
+app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
 
 // Error handler
 app.use(errorHandler);

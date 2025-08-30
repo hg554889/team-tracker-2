@@ -162,7 +162,9 @@ export default function AdminManagementTools() {
           }}>
             시스템 상태를 분석하고 최적화 제안을 받아보세요
           </p>
-          <button style={{
+          <button 
+            onClick={() => navigate('/admin/analytics')}
+            style={{
             background: 'rgba(255,255,255,0.2)',
             border: '1px solid rgba(255,255,255,0.3)',
             borderRadius: '6px',
