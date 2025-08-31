@@ -135,9 +135,14 @@ router.post('/:requestId/process', requireAuth, async (req, res, next) => {
     
     // If approved, update user's role and notify the user
     if (action === 'approve') {
-      await User.findByIdAndUpdate(roleRequest.userId._id, {
-        role: roleRequest.requestedRole
-      }, { new: true });
+      const updateData = { role: roleRequest.requestedRole };
+      
+      // EXECUTIVE 권한으로 승격하는 경우, 승인자와 같은 clubId 설정
+      if (roleRequest.requestedRole === 'EXECUTIVE') {
+        updateData.clubId = clubId; // 승인자의 clubId
+      }
+      
+      await User.findByIdAndUpdate(roleRequest.userId._id, updateData, { new: true });
       
       // Notify the user about role change via socket (if available)
       // The user will need to refresh or re-login to get the updated token
