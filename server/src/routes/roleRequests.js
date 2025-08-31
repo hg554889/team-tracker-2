@@ -133,28 +133,31 @@ router.post('/:requestId/process', requireAuth, async (req, res, next) => {
     
     await roleRequest.save();
     
-    // If approved, update user's role and issue new JWT token
-    let newToken = null;
+    // If approved, update user's role and notify the user
     if (action === 'approve') {
-      const updatedUser = await User.findByIdAndUpdate(roleRequest.userId._id, {
+      await User.findByIdAndUpdate(roleRequest.userId._id, {
         role: roleRequest.requestedRole
       }, { new: true });
       
-      // Issue new JWT token with updated role
-      newToken = signJwt({
-        id: updatedUser._id,
-        role: updatedUser.role,
-        clubId: updatedUser.clubId
-      });
+      // Notify the user about role change via socket (if available)
+      // The user will need to refresh or re-login to get the updated token
+      try {
+        const { getSocketService } = await import('../services/socketService.js');
+        const socketService = getSocketService();
+        if (socketService) {
+          socketService.notifyRoleChange(roleRequest.userId._id, {
+            newRole: roleRequest.requestedRole,
+            message: `역할이 ${roleRequest.requestedRole}로 승격되었습니다. 페이지를 새로고침해주세요.`
+          });
+        }
+      } catch (error) {
+        console.error('Failed to send role change notification:', error);
+      }
     }
     
     res.json({ 
       message: `Role request ${action}d successfully`,
-      request: roleRequest,
-      ...(newToken && { 
-        newToken, 
-        message: `역할이 ${roleRequest.requestedRole}로 승격되었습니다. 페이지를 새로고침해주세요.` 
-      })
+      request: roleRequest
     });
   } catch (e) { 
     next(e); 

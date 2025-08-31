@@ -64,6 +64,16 @@ export class SocketService {
     });
   }
 
+  // 사용자 권한 변경 알림 (토큰 없이)
+  notifyRoleChange(userId, roleData) {
+    // 해당 사용자에게만 권한 변경 알림 전송
+    this.io.sockets.sockets.forEach((socket) => {
+      if (socket.user && socket.user._id.toString() === userId.toString()) {
+        socket.emit('role-changed', roleData);
+      }
+    });
+  }
+
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
       console.log(`User ${socket.user.username} connected`);
