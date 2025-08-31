@@ -12,7 +12,7 @@ router.post('/create', requireAuth, async (req, res) => {
   const team = await Team.findById(teamId);
   if (!team) return res.status(404).json({ error: 'TeamNotFound' });
   const requester = req.user.id;
-  const isLeader = team.leader.toString() === requester;
+  const isLeader = team.leader && team.leader.toString() === requester;
   if (!isLeader) return res.status(403).json({ error: 'Forbidden' });
   const code = nanoid(12);
   const exp = Date.now() + expiresInMinutes * 60 * 1000;

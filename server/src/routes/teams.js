@@ -82,7 +82,7 @@ router.get('/', requireAuth, requireClubAccess, async (req, res) => {
     const userId = req.user.id;
     
     // 사용자가 팀 리더인지 확인
-    const isLeader = String(team.leader._id) === String(userId);
+    const isLeader = team.leader && String(team.leader._id) === String(userId);
     
     // 사용자가 팀 멤버인지 확인
     const memberInfo = team.members?.find(m => String(m.user) === String(userId));
@@ -134,7 +134,7 @@ router.post('/:id/members', requireAuth, validateTeamAccess, validate(teamMember
     if (!team) return res.status(404).json({ error: 'TeamNotFound' });
     
     const requesterId = req.user.id;
-    const isLeader = team.leader.toString() === requesterId;
+    const isLeader = team.leader && team.leader.toString() === requesterId;
     const isExecutiveOrAdmin = [Roles.EXECUTIVE, Roles.ADMIN].includes(req.user.role);
     
     if (!isLeader && !isExecutiveOrAdmin) {
@@ -169,7 +169,7 @@ router.post('/:id/members', requireAuth, validateTeamAccess, validate(teamMember
     
     // 이미 멤버인지 확인
     const exists = team.members.find((m) => m.user?.toString() === targetUser._id.toString());
-    const isLeaderAlready = team.leader.toString() === targetUser._id.toString();
+    const isLeaderAlready = team.leader && team.leader.toString() === targetUser._id.toString();
     
     if (isLeaderAlready) {
       return res.status(400).json({ 
@@ -208,7 +208,7 @@ router.delete('/:id/members/:userId', requireAuth, validateTeamAccess, async (re
   if (!team) return res.status(404).json({ error: 'NotFound' });
   
   const requesterId = req.user.id;
-  const isLeader = team.leader.toString() === requesterId;
+  const isLeader = team.leader && team.leader.toString() === requesterId;
   const isExecutiveOrAdmin = [Roles.EXECUTIVE, Roles.ADMIN].includes(req.user.role);
   
   if (!isLeader && !isExecutiveOrAdmin) {
@@ -331,7 +331,7 @@ router.get('/available', requireAuth, requireClubAccess, async (req, res) => {
     
     // 내가 멤버로 속한 팀 제외
     const availableTeams = teams.filter(team => {
-      const isLeader = String(team.leader._id) === String(userId);
+      const isLeader = team.leader && String(team.leader._id) === String(userId);
       const isMember = team.members?.some(m => String(m.user) === String(userId));
       return !isLeader && !isMember;
     });
