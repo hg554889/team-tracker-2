@@ -24,7 +24,18 @@ router.post('/create', requireAuth, async (req, res) => {
 router.get('/:code', async (req, res) => {
   const it = INVITES.get(req.params.code);
   if (!it || Date.now() > it.exp) return res.status(404).json({ error: 'InvalidInvite' });
-  res.json({ teamId: it.teamId, role: it.role, exp: it.exp });
+  
+  // 팀 정보를 포함하여 반환
+  const team = await Team.findById(it.teamId);
+  if (!team) return res.status(404).json({ error: 'TeamNotFound' });
+  
+  res.json({ 
+    teamId: it.teamId, 
+    teamName: team.name,
+    teamType: team.type,
+    role: it.role, 
+    exp: it.exp 
+  });
 });
 
 // 초대 수락 (로그인 필요)
