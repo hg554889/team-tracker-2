@@ -23,7 +23,7 @@ export default function TeamInvite() {
       setMyTeams(data);
       if (data.length > 0) {
         setSelectedTeam(data[0]._id);
-        generateInviteLink(data[0]._id);
+        await generateInviteLink(data[0]._id);
       }
     } catch (error) {
       console.error('Failed to load my teams:', error);
@@ -32,15 +32,21 @@ export default function TeamInvite() {
     }
   };
 
-  const generateInviteLink = (teamId) => {
-    // 실제로는 서버에서 생성된 초대 링크를 받아와야 함
-    const inviteCode = `${teamId}_${Date.now().toString(36)}`;
-    setInviteLink(`${window.location.origin}/teams/join/${inviteCode}`);
+  const generateInviteLink = async (teamId) => {
+    try {
+      const { data } = await client.post('/invites/create', { teamId });
+      setInviteLink(`${window.location.origin}/invite/${data.code}`);
+    } catch (error) {
+      console.error('Failed to generate invite link:', error);
+      window.dispatchEvent(new CustomEvent('toast', { 
+        detail: { type: 'error', msg: '초대 링크 생성에 실패했습니다.' } 
+      }));
+    }
   };
 
-  const handleTeamChange = (teamId) => {
+  const handleTeamChange = async (teamId) => {
     setSelectedTeam(teamId);
-    generateInviteLink(teamId);
+    await generateInviteLink(teamId);
   };
 
   const handleSendInvites = async () => {
