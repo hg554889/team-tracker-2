@@ -106,7 +106,7 @@ export default function ReportForm(){
       setDone(true);
       window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'보고서 저장 완료'} }));
       window.dispatchEvent(new CustomEvent('report:saved', { detail: { teamId } }));
-      nav(`/teams/${teamId}`, { replace:true });
+      nav(`/teams/${teamId}#reports`, { replace:true });
     }catch(err){
       console.log('server says:', err.response?.data);
       window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'저장 실패'} }));

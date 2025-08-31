@@ -58,7 +58,7 @@ export default function TeamDetail() {
     type: 'other'
   });
 
-  // 팀 로드
+  // 팀 로드 및 URL 해시 처리
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -80,6 +80,13 @@ export default function TeamDetail() {
         if (mounted) setTeam(null);
       }
     })();
+    
+    // URL 해시로 탭 설정
+    const hash = window.location.hash.substring(1);
+    if (hash && ['overview', 'progress', 'members', 'reports', 'prediction', 'issues', 'requests'].includes(hash)) {
+      setTab(hash);
+    }
+    
     return () => (mounted = false);
   }, [id]);
 
