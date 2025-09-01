@@ -20,3 +20,6 @@ export function updateReport(id, data) {
 export function addComment(reportId, text) {
   return client.post(`/reports/${reportId}/comments`, { text });
 }
+export function deleteReport(id) {
+  return client.delete(`/reports/${id}`);
+}

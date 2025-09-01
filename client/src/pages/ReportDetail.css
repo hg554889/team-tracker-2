@@ -130,7 +130,8 @@
 }
 
 .btn-primary,
-.btn-secondary {
+.btn-secondary,
+.btn-danger {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 12px;
@@ -166,6 +167,24 @@
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.6);
   transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn-danger:disabled {
+  background: rgba(239, 68, 68, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Report Content */
@@ -673,7 +692,8 @@
   }
 
   .btn-primary,
-  .btn-secondary {
+  .btn-secondary,
+  .btn-danger {
     padding: 0.5rem 1rem;
     font-size: 0.8rem;
   }

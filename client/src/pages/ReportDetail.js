@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getReport, updateReport, addComment } from '../api/reports';
+import { getReport, updateReport, addComment, deleteReport } from '../api/reports';
 import { useAuth } from '../contexts/AuthContext';
 import './ReportDetail.css';
 
@@ -18,6 +18,7 @@ export default function ReportDetail(){
   const [dueAt, setDueAt] = useState('');
   const [comment, setComment] = useState('');
   const [posting, setPosting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   async function load(){
     setLoading(true);
@@ -71,6 +72,19 @@ export default function ReportDetail(){
     try{ await addComment(report._id, comment.trim()); setComment(''); await load(); }
     finally{ setPosting(false); }
   }
+  async function handleDelete(){
+    if (!window.confirm('정말로 이 보고서를 삭제하시겠습니까?')) return;
+    setDeleting(true);
+    try{ 
+      await deleteReport(report._id); 
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'success', msg:'보고서가 삭제되었습니다.'} }));
+      nav(-1);
+    }
+    catch(e){ 
+      window.dispatchEvent(new CustomEvent('toast',{ detail:{ type:'error', msg:'삭제 중 오류가 발생했습니다.'} }));
+    }
+    finally{ setDeleting(false); }
+  }
 
   return (
     <div className="report-detail-container">
@@ -91,9 +105,14 @@ export default function ReportDetail(){
               팀 보기
             </Link>
             {canEdit && !edit && (
-              <button className="btn-primary" onClick={()=> setEdit(true)}>
-                ✏️ 수정
-              </button>
+              <>
+                <button className="btn-primary" onClick={()=> setEdit(true)}>
+                  ✏️ 수정
+                </button>
+                <button className="btn-danger" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? '삭제 중...' : '🗑️ 삭제'}
+                </button>
+              </>
             )}
             {canEdit && edit && (
               <>

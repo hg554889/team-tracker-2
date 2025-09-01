@@ -338,4 +338,29 @@ router.get('/:id/comments', requireAuth, async (req, res, next) => {
   }
 });
 
+// 삭제 (ADMIN, EXECUTIVE, 작성자, 또는 리더)
+router.delete('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const r = await Report.findById(req.params.id);
+    if (!r) return res.status(404).json({ error: 'NotFound' });
+
+    const team = await Team.findById(r.team);
+    const { id: userId, role, clubId: userClubId } = req.user;
+    
+    const isLeader = team?.leader?.toString() === userId;
+    const isAuthor = r.author.toString() === userId;
+    const isExecutiveInSameClub = (role === Roles.EXECUTIVE && r.clubId === userClubId);
+    
+    if (!(role === Roles.ADMIN || isExecutiveInSameClub || isLeader || isAuthor)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    await Report.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Report deleted successfully' });
+  } catch (e) { 
+    console.error('Report delete error:', e);
+    next(e); 
+  }
+});
+
 export default router;
