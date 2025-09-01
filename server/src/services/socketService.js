@@ -159,15 +159,28 @@ export class SocketService {
           message.isEdited = true;
           message.editedAt = new Date();
           await message.save();
+          await message.populate('userId', 'username');
 
-          this.io.to(`team-${socket.teamId}`).emit('message-edited', {
-            messageId: data.messageId,
-            newMessage: data.newMessage,
-            editedAt: message.editedAt
-          });
+          this.io.to(`team-${socket.teamId}`).emit('message-updated', message);
 
         } catch (error) {
           socket.emit('error', { message: 'Failed to edit message' });
+        }
+      });
+
+      socket.on('delete-message', async (data) => {
+        try {
+          const message = await ChatMessage.findById(data.messageId);
+          if (!message || message.userId.toString() !== socket.user._id.toString()) {
+            socket.emit('error', { message: 'Cannot delete this message' });
+            return;
+          }
+
+          await ChatMessage.findByIdAndDelete(data.messageId);
+          this.io.to(`team-${socket.teamId}`).emit('message-deleted', data.messageId);
+
+        } catch (error) {
+          socket.emit('error', { message: 'Failed to delete message' });
         }
       });
 

@@ -8,6 +8,8 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
   const [newMessage, setNewMessage] = useState('');
   const [typingUsers, setTypingUsers] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [editText, setEditText] = useState('');
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const { socket, isConnected } = useSocket();
@@ -24,6 +26,16 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
 
       socket.on('new-message', (message) => {
         setMessages(prev => [...prev, message]);
+      });
+
+      socket.on('message-updated', (updatedMessage) => {
+        setMessages(prev => prev.map(msg => 
+          msg._id === updatedMessage._id ? updatedMessage : msg
+        ));
+      });
+
+      socket.on('message-deleted', (messageId) => {
+        setMessages(prev => prev.filter(msg => msg._id !== messageId));
       });
 
       socket.on('user-joined', (data) => {
@@ -73,6 +85,8 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
       return () => {
         socket.off('recent-messages');
         socket.off('new-message');
+        socket.off('message-updated');
+        socket.off('message-deleted');
         socket.off('user-joined');
         socket.off('user-left');
         socket.off('user-typing');
@@ -124,6 +138,35 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
     });
   };
 
+  const handleEditMessage = (message) => {
+    setEditingMessage(message._id);
+    setEditText(message.message);
+  };
+
+  const handleSaveEdit = (messageId) => {
+    if (editText.trim() && socket) {
+      socket.emit('edit-message', {
+        messageId,
+        newMessage: editText.trim()
+      });
+      setEditingMessage(null);
+      setEditText('');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditText('');
+  };
+
+  const handleDeleteMessage = (messageId) => {
+    if (window.confirm('이 메시지를 삭제하시겠습니까?')) {
+      if (socket) {
+        socket.emit('delete-message', { messageId });
+      }
+    }
+  };
+
   if (!isOpen) {
     return (
       <div className="chat-toggle">
@@ -164,8 +207,59 @@ const TeamChat = ({ teamId, isOpen, onToggle }) => {
                   <span className="username">{message.userId?.username}</span>
                   <span className="timestamp">{formatTime(message.createdAt)}</span>
                   {message.isEdited && <span className="edited">(수정됨)</span>}
+                  {message.userId?._id === user?._id && (
+                    <div className="message-actions">
+                      <button 
+                        className="message-action-btn edit-btn"
+                        onClick={() => handleEditMessage(message)}
+                        title="수정"
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        className="message-action-btn delete-btn"
+                        onClick={() => handleDeleteMessage(message._id)}
+                        title="삭제"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <div className="message-content">{message.message}</div>
+                {editingMessage === message._id ? (
+                  <div className="message-edit">
+                    <input
+                      type="text"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveEdit(message._id);
+                        } else if (e.key === 'Escape') {
+                          handleCancelEdit();
+                        }
+                      }}
+                      className="edit-input"
+                      autoFocus
+                    />
+                    <div className="edit-actions">
+                      <button 
+                        className="edit-save-btn"
+                        onClick={() => handleSaveEdit(message._id)}
+                      >
+                        저장
+                      </button>
+                      <button 
+                        className="edit-cancel-btn"
+                        onClick={handleCancelEdit}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="message-content">{message.message}</div>
+                )}
               </>
             )}
           </div>
