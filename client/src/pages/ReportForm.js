@@ -349,7 +349,7 @@ Ex)
         <div className="form-actions">
           <button 
             type="button"
-            onClick={() => nav('/teams')}
+            onClick={() => teamId ? nav(`/teams/${teamId}#reports`) : nav('/teams')}
             className="btn-cancel"
           >
             취소

@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { listReports } from '../api/reports';
 import { listTeams } from '../api/teams';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import './ReportsList.css';
 
 export default function ReportsList(){
   const [params, setParams] = useSearchParams();
+  const nav = useNavigate();
   const [rows, setRows] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -152,6 +153,15 @@ export default function ReportsList(){
           </button>
         </div>
       )}
+
+      <div className="back-button-section">
+        <button 
+          className="btn-back" 
+          onClick={() => teamId ? nav(`/teams/${teamId}#reports`) : nav(-1)}
+        >
+          ← 뒤로 가기
+        </button>
+      </div>
     </div>
   );
 }

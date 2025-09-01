@@ -98,10 +98,10 @@ export default function ReportDetail(){
             </div>
           </div>
           <div className="header-actions">
-            <button className="btn-secondary" onClick={()=> nav(-1)}>
+            <button className="btn-secondary" onClick={()=> nav(`/teams/${report.team?._id}#reports`)}>
               ← 뒤로
             </button>
-            <Link className="btn-secondary" to={`/teams/${report.team?._id}`}>
+            <Link className="btn-secondary" to={`/teams/${report.team?._id}#reports`}>
               팀 보기
             </Link>
             {canEdit && !edit && (
