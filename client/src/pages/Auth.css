@@ -150,7 +150,6 @@
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
   transform: translateY(-1px);
-  background: rgba(0, 0, 0, 0.3);
 }
 
 .auth-input::placeholder {
@@ -276,4 +275,13 @@
   .form-group {
     gap: 0.25rem;
   }
+}
+
+/* Override browser autofill styles */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover, 
+.auth-input:-webkit-autofill:focus, 
+.auth-input:-webkit-autofill:active {
+    -webkit-text-fill-color: #111827 !important; /* Ensure text is visible on light autofill background */
+    transition: background-color 5000s ease-in-out 0s; /* Hack to prevent background color change */
 }
