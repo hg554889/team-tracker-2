@@ -11,7 +11,11 @@ const ReportSchema = new Schema({
   clubId: { type: String, required: true, index: true },
   weekOf: { type: Date, required: true },
   progress: { type: Number, min: 0, max: 100, default: 0 },
-  goals: { type: String, default: '' },
+  goals: { type: String, default: '' }, // 기존 호환성을 위해 유지
+  shortTermGoals: { type: String, default: '' },
+  longTermGoals: { type: String, default: '' },
+  actionPlans: { type: String, default: '' },
+  milestones: { type: String, default: '' },
   issues: { type: String, default: '' },
   dueAt: { type: Date },
   title: { type: String, default: '' },

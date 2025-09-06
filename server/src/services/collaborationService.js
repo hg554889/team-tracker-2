@@ -3,9 +3,19 @@ import { Report } from '../models/Report.js';
 import { getSocketService } from './socketService.js';
 
 export class CollaborationService {
-  static async initializeCollaboration(reportId, userId) {
+  static async initializeCollaboration(reportId, userId, field = 'content') {
     try {
-      let collab = await ReportCollaboration.findOne({ reportId });
+      // 입력 값 검증
+      if (!reportId || !userId) {
+        throw new Error('Invalid reportId or userId');
+      }
+      
+      const validFields = ['shortTermGoals', 'longTermGoals', 'actionPlans', 'milestones', 'issues', 'content'];
+      if (!validFields.includes(field)) {
+        throw new Error(`Invalid field: ${field}`);
+      }
+      
+      let collab = await ReportCollaboration.findOne({ reportId, field });
       
       if (!collab) {
         const report = await Report.findById(reportId);
@@ -15,7 +25,8 @@ export class CollaborationService {
 
         collab = new ReportCollaboration({
           reportId,
-          content: report.content || '',
+          field,
+          content: report[field] || report.content || '',
           collaborators: [{
             userId,
             joinedAt: new Date(),
@@ -49,9 +60,18 @@ export class CollaborationService {
     }
   }
 
-  static async applyOperation(reportId, userId, operation) {
+  static async applyOperation(reportId, userId, operation, field = 'content') {
     try {
-      const collab = await ReportCollaboration.findOne({ reportId });
+      // 입력 값 검증
+      if (!reportId || !userId || !operation) {
+        throw new Error('Invalid input parameters');
+      }
+      
+      if (!['insert', 'delete', 'replace'].includes(operation.type)) {
+        throw new Error(`Invalid operation type: ${operation.type}`);
+      }
+      
+      const collab = await ReportCollaboration.findOne({ reportId, field });
       if (!collab) {
         throw new Error('Collaboration session not found');
       }
@@ -81,6 +101,15 @@ export class CollaborationService {
           break;
       }
 
+      // 내용 길이 검증 (100KB 제한)
+      if (newContent.length > 100000) {
+        throw new Error('Content too large (max 100KB)');
+      }
+      
+      if (operation.position < 0 || operation.position > collab.content.length) {
+        throw new Error('Invalid operation position');
+      }
+      
       collab.content = newContent;
       collab.version += 1;
       
@@ -90,32 +119,40 @@ export class CollaborationService {
         timestamp: new Date()
       });
 
-      if (collab.operations.length > 1000) {
-        collab.operations = collab.operations.slice(-500);
+      // operations 배열 크기 제한 및 최적화 (500개 제한, 250개로 정리)
+      if (collab.operations.length > 500) {
+        collab.operations = collab.operations.slice(-250);
       }
 
       await collab.save();
 
       const socketService = getSocketService();
       if (socketService && socketService.io) {
-        socketService.io.to(`collab-${reportId}`).emit('operation-applied', {
+        socketService.io.to(`collab-${reportId}-${field}`).emit('operation-applied', {
           operation,
           version: collab.version,
           content: newContent,
-          userId
+          userId,
+          field
         });
       }
 
       return collab;
     } catch (error) {
-      console.error('Apply operation error:', error);
+      console.error(`Apply operation error for reportId: ${reportId}, field: ${field}:`, error);
+      
+      // 데이터베이스 오류 vs 비즈니스 로직 오류 구분
+      if (error.name === 'ValidationError' || error.name === 'CastError') {
+        throw new Error('Database validation error');
+      }
+      
       throw error;
     }
   }
 
-  static async updateCursor(reportId, userId, cursor) {
+  static async updateCursor(reportId, userId, cursor, field = 'content') {
     try {
-      const collab = await ReportCollaboration.findOne({ reportId });
+      const collab = await ReportCollaboration.findOne({ reportId, field });
       if (!collab) return;
 
       const collaborator = collab.collaborators.find(
@@ -129,9 +166,10 @@ export class CollaborationService {
 
         const socketService = getSocketService();
         if (socketService && socketService.io) {
-          socketService.io.to(`collab-${reportId}`).emit('cursor-update', {
+          socketService.io.to(`collab-${reportId}-${field}`).emit('cursor-update', {
             userId,
-            cursor
+            cursor,
+            field
           });
         }
       }
@@ -140,9 +178,9 @@ export class CollaborationService {
     }
   }
 
-  static async removeCollaborator(reportId, userId) {
+  static async removeCollaborator(reportId, userId, field = 'content') {
     try {
-      const collab = await ReportCollaboration.findOne({ reportId });
+      const collab = await ReportCollaboration.findOne({ reportId, field });
       if (!collab) return;
 
       collab.collaborators = collab.collaborators.filter(
@@ -158,8 +196,9 @@ export class CollaborationService {
 
       const socketService = getSocketService();
       if (socketService && socketService.io) {
-        socketService.io.to(`collab-${reportId}`).emit('collaborator-left', {
-          userId
+        socketService.io.to(`collab-${reportId}-${field}`).emit('collaborator-left', {
+          userId,
+          field
         });
       }
     } catch (error) {
@@ -167,17 +206,17 @@ export class CollaborationService {
     }
   }
 
-  static async saveToReport(reportId) {
+  static async saveToReport(reportId, field = 'content') {
     try {
-      const collab = await ReportCollaboration.findOne({ reportId });
+      const collab = await ReportCollaboration.findOne({ reportId, field });
       if (!collab) {
         throw new Error('Collaboration session not found');
       }
 
-      await Report.findByIdAndUpdate(reportId, {
-        content: collab.content,
-        updatedAt: new Date()
-      });
+      const updateData = { updatedAt: new Date() };
+      updateData[field] = collab.content;
+      
+      await Report.findByIdAndUpdate(reportId, updateData);
 
       return true;
     } catch (error) {

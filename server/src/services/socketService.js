@@ -202,22 +202,28 @@ export class SocketService {
         }
       });
 
-      socket.on('join-collaboration', async (reportId) => {
+      socket.on('join-collaboration', async (data) => {
         try {
-          socket.join(`collab-${reportId}`);
+          const reportId = typeof data === 'string' ? data : data.reportId;
+          const field = typeof data === 'string' ? 'content' : data.field || 'content';
+          
+          socket.join(`collab-${reportId}-${field}`);
           socket.reportId = reportId;
+          socket.reportField = field;
 
-          const collab = await CollaborationService.initializeCollaboration(reportId, socket.user._id);
+          const collab = await CollaborationService.initializeCollaboration(reportId, socket.user._id, field);
           
           socket.emit('collaboration-initialized', {
             content: collab.content,
             version: collab.version,
-            collaborators: collab.collaborators
+            collaborators: collab.collaborators,
+            field: field
           });
 
-          socket.to(`collab-${reportId}`).emit('collaborator-joined', {
+          socket.to(`collab-${reportId}-${field}`).emit('collaborator-joined', {
             userId: socket.user._id,
-            username: socket.user.username
+            username: socket.user.username,
+            field: field
           });
 
         } catch (error) {
@@ -235,7 +241,8 @@ export class SocketService {
           await CollaborationService.applyOperation(
             socket.reportId, 
             socket.user._id, 
-            data.operation
+            data.operation,
+            socket.reportField || 'content'
           );
 
         } catch (error) {
@@ -249,7 +256,8 @@ export class SocketService {
             await CollaborationService.updateCursor(
               socket.reportId, 
               socket.user._id, 
-              data.cursor
+              data.cursor,
+              socket.reportField || 'content'
             );
           }
         } catch (error) {
@@ -257,11 +265,12 @@ export class SocketService {
         }
       });
 
-      socket.on('save-report', async () => {
+      socket.on('save-report', async (data = {}) => {
         try {
           if (socket.reportId) {
-            await CollaborationService.saveToReport(socket.reportId);
-            socket.emit('report-saved');
+            const field = data.field || socket.reportField || 'content';
+            await CollaborationService.saveToReport(socket.reportId, field);
+            socket.emit('report-saved', { field });
           }
         } catch (error) {
           socket.emit('error', { message: 'Failed to save report' });
@@ -277,7 +286,11 @@ export class SocketService {
           });
         }
         if (socket.reportId) {
-          CollaborationService.removeCollaborator(socket.reportId, socket.user._id);
+          CollaborationService.removeCollaborator(
+            socket.reportId, 
+            socket.user._id, 
+            socket.reportField || 'content'
+          );
         }
       });
     });

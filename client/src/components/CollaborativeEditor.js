@@ -1,9 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import { useAuth } from '../contexts/AuthContext';
 import './CollaborativeEditor.css';
 
-const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled = false }) => {
+// 디바운싱 훅
+function useDebounce(callback, delay) {
+  const timeoutRef = useRef(null);
+  
+  return useCallback((...args) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      callback(...args);
+    }, delay);
+  }, [callback, delay]);
+}
+
+const CollaborativeEditor = ({ reportId, field = 'content', initialContent = '', onChange, disabled = false }) => {
   const [content, setContent] = useState(initialContent);
   const [collaborators, setCollaborators] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -19,21 +33,25 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
 
   useEffect(() => {
     if (socket && reportId && !disabled) {
-      socket.emit('join-collaboration', reportId);
+      socket.emit('join-collaboration', { reportId, field });
 
       socket.on('collaboration-initialized', (data) => {
-        setContent(data.content);
-        setVersion(data.version);
-        setCollaborators(data.collaborators || []);
-        setIsConnected(true);
-        lastContentRef.current = data.content;
-        if (onChange) {
-          onChange(data.content);
+        // 현재 field에 해당하는 데이터만 처리
+        if (data.field === field) {
+          setContent(data.content);
+          setVersion(data.version);
+          setCollaborators(data.collaborators || []);
+          setIsConnected(true);
+          lastContentRef.current = data.content;
+          if (onChange) {
+            onChange(data.content);
+          }
         }
       });
 
       socket.on('operation-applied', (data) => {
-        if (data.userId !== user?._id) {
+        // 현재 field에 해당하는 데이터만 처리
+        if (data.field === field && data.userId !== user?._id) {
           setContent(data.content);
           setVersion(data.version);
           lastContentRef.current = data.content;
@@ -44,26 +62,33 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
       });
 
       socket.on('collaborator-joined', (data) => {
-        setCollaborators(prev => {
-          const exists = prev.some(c => c.userId === data.userId);
-          if (!exists) {
-            return [...prev, { userId: data.userId, username: data.username }];
-          }
-          return prev;
-        });
+        // 현재 field에 해당하는 협업자만 처리
+        if (data.field === field) {
+          setCollaborators(prev => {
+            const exists = prev.some(c => c.userId === data.userId);
+            if (!exists) {
+              return [...prev, { userId: data.userId, username: data.username }];
+            }
+            return prev;
+          });
+        }
       });
 
       socket.on('collaborator-left', (data) => {
-        setCollaborators(prev => prev.filter(c => c.userId !== data.userId));
-        setCursors(prev => {
-          const newCursors = { ...prev };
-          delete newCursors[data.userId];
-          return newCursors;
-        });
+        // 현재 field에 해당하는 협업자만 처리
+        if (data.field === field) {
+          setCollaborators(prev => prev.filter(c => c.userId !== data.userId));
+          setCursors(prev => {
+            const newCursors = { ...prev };
+            delete newCursors[data.userId];
+            return newCursors;
+          });
+        }
       });
 
       socket.on('cursor-update', (data) => {
-        if (data.userId !== user?._id) {
+        // 현재 field에 해당하는 커서만 처리
+        if (data.field === field && data.userId !== user?._id) {
           setCursors(prev => ({
             ...prev,
             [data.userId]: data.cursor
@@ -71,8 +96,11 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
         }
       });
 
-      socket.on('report-saved', () => {
-        setIsSaving(false);
+      socket.on('report-saved', (data) => {
+        // 현재 field에 해당하는 저장만 처리
+        if (!data?.field || data.field === field) {
+          setIsSaving(false);
+        }
       });
 
       return () => {
@@ -84,13 +112,16 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
         socket.off('report-saved');
       };
     }
-  }, [socket, reportId, disabled, user?._id, onChange]);
+  }, [socket, reportId, field, disabled, user?._id, onChange]);
 
   const applyOperation = useCallback((operation) => {
     if (!socket || !isConnected) return;
 
-    socket.emit('apply-operation', { operation });
-  }, [socket, isConnected]);
+    socket.emit('apply-operation', { operation, field });
+  }, [socket, isConnected, field]);
+  
+  // 디바운싱된 applyOperation (300ms 지연)
+  const debouncedApplyOperation = useDebounce(applyOperation, 300);
 
   const handleChange = useCallback((e) => {
     if (disabled) return;
@@ -100,18 +131,20 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
     
     if (newContent === oldContent) return;
 
-    const operation = generateOperation(oldContent, newContent);
-    if (operation) {
-      applyOperation(operation);
-    }
-
+    // 즉시 UI 업데이트 (사용자 경험 향상)
     setContent(newContent);
     lastContentRef.current = newContent;
     
     if (onChange) {
       onChange(newContent);
     }
-  }, [disabled, applyOperation, onChange]);
+
+    // 서버 동기화는 디바운싱 적용
+    const operation = generateOperation(oldContent, newContent);
+    if (operation) {
+      debouncedApplyOperation(operation);
+    }
+  }, [disabled, debouncedApplyOperation, onChange]);
 
   const handleCursorChange = useCallback(() => {
     if (!socket || disabled) return;
@@ -153,7 +186,7 @@ const CollaborativeEditor = ({ reportId, initialContent = '', onChange, disabled
     if (!socket || isSaving) return;
     
     setIsSaving(true);
-    socket.emit('save-report');
+    socket.emit('save-report', { field });
   };
 
   return (

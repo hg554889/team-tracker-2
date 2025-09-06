@@ -12,7 +12,10 @@ export default function ReportForm(){
   const [teamId, setTeamId] = useState('');
   const [weekOf, setWeekOf] = useState('');
   const [progress, setProgress] = useState(0);
-  const [goals, setGoals] = useState('');
+  const [shortTermGoals, setShortTermGoals] = useState('');
+  const [longTermGoals, setLongTermGoals] = useState('');
+  const [actionPlans, setActionPlans] = useState('');
+  const [milestones, setMilestones] = useState('');
   const [issues, setIssues] = useState('');
   const [reportId, setReportId] = useState(null);
   const [useCollaborative, setUseCollaborative] = useState(false);
@@ -45,7 +48,10 @@ export default function ReportForm(){
 
   // AI 템플릿 적용
   const handleTemplateGenerated = (template) => {
-    if (template.goals) setGoals(template.goals);
+    if (template.shortTermGoals) setShortTermGoals(template.shortTermGoals);
+    if (template.longTermGoals) setLongTermGoals(template.longTermGoals);
+    if (template.actionPlans) setActionPlans(template.actionPlans);
+    if (template.milestones) setMilestones(template.milestones);
     if (template.issues) setIssues(template.issues);
     if (template.suggestedProgress) setProgress(template.suggestedProgress);
     
@@ -64,29 +70,111 @@ export default function ReportForm(){
     }
   };
 
-  // AI 목표 제안 적용
+  // AI 목표 제안 적용 (개선됨)
   const handleGoalsSuggested = (suggestions) => {
-    let suggestedGoals = '';
-    
     if (suggestions.shortTermGoals) {
-      suggestedGoals += '🎯 단기 목표:\n';
+      let shortTermText = '';
       suggestions.shortTermGoals.forEach((goal, index) => {
-        suggestedGoals += `${index + 1}. ${goal}\n`;
+        shortTermText += `${index + 1}. ${goal}\n`;
       });
-      suggestedGoals += '\n';
+      setShortTermGoals(shortTermText);
+    }
+    
+    if (suggestions.mediumTermGoals || suggestions.longTermGoals) {
+      let longTermText = '';
+      const longTerm = suggestions.mediumTermGoals || suggestions.longTermGoals || [];
+      longTerm.forEach((goal, index) => {
+        longTermText += `${index + 1}. ${goal}\n`;
+      });
+      setLongTermGoals(longTermText);
     }
     
     if (suggestions.keyMilestones) {
-      suggestedGoals += '🏃 핵심 마일스톤:\n';
+      let milestonesText = '';
       suggestions.keyMilestones.forEach((milestone, index) => {
-        suggestedGoals += `${index + 1}. ${milestone}\n`;
+        milestonesText += `${index + 1}. ${milestone}\n`;
       });
+      setMilestones(milestonesText);
     }
-    
-    setGoals(suggestedGoals);
     
     window.dispatchEvent(new CustomEvent('toast', {
       detail: { type: 'info', msg: 'AI 제안 목표가 적용되었습니다. 팀 상황에 맞게 수정해주세요.' }
+    }));
+  };
+
+  // AI 실행계획 제안 적용
+  const handleActionPlanSuggested = (actionPlan) => {
+    if (actionPlan.timeline) {
+      let planText = '📅 단계별 일정:\n';
+      actionPlan.timeline.forEach((step, index) => {
+        planText += `${index + 1}. ${step.task} (${step.duration}, 담당: ${step.assignee})\n`;
+      });
+      planText += '\n';
+      
+      if (actionPlan.checkpoints) {
+        planText += '✓ 체크포인트:\n';
+        actionPlan.checkpoints.forEach((checkpoint, index) => {
+          planText += `- ${checkpoint}\n`;
+        });
+      }
+      
+      setActionPlans(planText);
+    }
+    
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'info', msg: 'AI 실행계획이 적용되었습니다.' }
+    }));
+  };
+
+  // AI 스마트 분석 결과 처리
+  const handleSmartAnalysis = (analysis) => {
+    let analysisText = `🤖 AI 분석 결과 (전체 점수: ${analysis.score}/100)\n\n`;
+    
+    if (analysis.strengths) {
+      analysisText += '👍 강점:\n';
+      analysis.strengths.forEach(strength => {
+        analysisText += `- ${strength}\n`;
+      });
+      analysisText += '\n';
+    }
+    
+    if (analysis.improvements) {
+      analysisText += '💡 개선점:\n';
+      analysis.improvements.forEach(improvement => {
+        analysisText += `- ${improvement}\n`;
+      });
+    }
+  };
+
+  // AI 단기 목표 직접 적용
+  const handleApplyToShortTermGoals = (content) => {
+    setShortTermGoals(content);
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'success', msg: '단기 목표가 적용되었습니다.' }
+    }));
+  };
+
+  // AI 장기 목표 직접 적용
+  const handleApplyToLongTermGoals = (content) => {
+    setLongTermGoals(content);
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'success', msg: '장기 목표가 적용되었습니다.' }
+    }));
+  };
+
+  // AI 실행 계획 직접 적용
+  const handleApplyToActionPlans = (content) => {
+    setActionPlans(content);
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'success', msg: '실행 계획이 적용되었습니다.' }
+    }));
+  };
+
+  // AI 마일스톤 직접 적용
+  const handleApplyToMilestones = (content) => {
+    setMilestones(content);
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'success', msg: '마일스톤이 적용되었습니다.' }
     }));
   };
 
@@ -97,7 +185,10 @@ export default function ReportForm(){
         teamId,
         weekOf: new Date().toISOString(), // 현재 시간으로 설정하여 고유성 보장
         progress: Number(progress),
-        goals,
+        shortTermGoals,
+        longTermGoals,
+        actionPlans,
+        milestones,
         issues,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
       };
@@ -180,6 +271,14 @@ export default function ReportForm(){
             onTemplateGenerated={handleTemplateGenerated}
             onProgressPredicted={handleProgressPredicted}
             onGoalsSuggested={handleGoalsSuggested}
+            onActionPlanSuggested={handleActionPlanSuggested}
+            onSmartAnalysis={handleSmartAnalysis}
+            onApplyToShortTermGoals={handleApplyToShortTermGoals}
+            onApplyToLongTermGoals={handleApplyToLongTermGoals}
+            onApplyToActionPlans={handleApplyToActionPlans}
+            onApplyToMilestones={handleApplyToMilestones}
+            currentGoals={{ shortTermGoals, longTermGoals }}
+            currentPlans={{ actionPlans, milestones }}
           />
         </div>
       )}
@@ -244,7 +343,13 @@ export default function ReportForm(){
           </div>
         </div>
 
+        {/* 협업 편집 토글 */}
         <div className="collaboration-toggle">
+          <div className="collaboration-header">
+            <h3>🤝 팀 협업 모드</h3>
+            <p className="collaboration-subtitle">팀원들과 실시간으로 보고서를 함께 작성하세요</p>
+          </div>
+          
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -253,47 +358,219 @@ export default function ReportForm(){
             />
             <span className="checkmark"></span>
             <span className="label-text">
-              <strong>실시간 협업 편집 사용</strong>
-              <small>팀원들과 함께 보고서를 작성할 수 있습니다</small>
+              <strong>🚀 실시간 협업 편집 활성화</strong>
+              <small>모든 팀원이 동시에 편집할 수 있는 실시간 협업 기능입니다</small>
             </span>
           </label>
-        </div>
 
-        <div className="form-section">
-          <h3>🎯 목표 및 계획</h3>
-          <div className="form-group">
-            <label>목표 *</label>
-            {useCollaborative && reportId ? (
-              <div>
-                <CollaborativeEditor
-                  reportId={reportId}
-                  initialContent={goals}
-                  onChange={setGoals}
-                  disabled={false}
-                />
-                <div className="form-hint">
-                  💡 팀원들과 실시간으로 협업하여 목표를 작성할 수 있습니다.
+          {/* 협업 안내 상자 */}
+          <div className="collaboration-guide">
+            <div className="guide-section">
+              <h4>🎯 효과적인 협업 방법</h4>
+              <div className="guide-grid">
+                <div className="guide-item">
+                  <span className="guide-icon">📝</span>
+                  <div className="guide-content">
+                    <strong>역할 분담</strong>
+                    <p>각자 다른 섹션 담당 (단기목표/장기목표/계획/마일스톤)</p>
+                  </div>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">⏰</span>
+                  <div className="guide-content">
+                    <strong>동시 편집 주의</strong>
+                    <p>같은 섹션을 동시 작업 시 커서 위치 확인 후 작업</p>
+                  </div>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">💬</span>
+                  <div className="guide-content">
+                    <strong>소통</strong>
+                    <p>중요한 수정 전 팀원에게 미리 알림 전달</p>
+                  </div>
+                </div>
+                <div className="guide-item">
+                  <span className="guide-icon">🔄</span>
+                  <div className="guide-content">
+                    <strong>매끄럽게 저장</strong>
+                    <p>작업 완료 후 저장 버튼을 눌러 모든 변경사항 저장</p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <>
-                <textarea 
-                  className="form-textarea" 
-                  value={goals} 
-                  onChange={e => setGoals(e.target.value)}
-                  placeholder="이번 주 목표를 구체적으로 입력해주세요...
-Ex) 
-• 사용자 인증 기능 개발 완료
-• 데이터베이스 설계 및 구현
-• UI/UX 디자인 시안 3개 제작"
-                  required
-                />
-                <div className="form-hint">
-                  💡 AI 어시스턴트를 활용하면 팀과 프로젝트에 맞는 목표를 제안받을 수 있습니다.
-                  {!reportId && ' (보고서 저장 후 협업 편집 가능)'}
-                </div>
-              </>
-            )}
+            </div>
+
+            <div className="guide-section">
+              <h4>✅ 협업이 유용한 상황</h4>
+              <ul className="best-practices">
+                <li><strong>브레인스토밍:</strong> 팀원들과 함께 아이디어를 도출할 때</li>
+                <li><strong>복잡한 이슈 분석:</strong> 여러 관점의 의견이 필요한 문제일 때</li>
+                <li><strong>실시간 피드백:</strong> 진행 상황을 즉시 공유하고 싶을 때</li>
+                <li><strong>지식 공유:</strong> 경험이 많은 팀원의 노하우를 공유받을 때</li>
+              </ul>
+            </div>
+
+            <div className="guide-section">
+              <h4>⚠️ 주의사항</h4>
+              <ul className="warnings">
+                <li>보고서를 저장한 후에 협업 기능을 사용할 수 있습니다</li>
+                <li>네트워크 연결이 불안정한 경우 일반 모드를 사용하세요</li>
+                <li>중요한 내용은 별도로 백업해 두는 것을 권장합니다</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* 목표 및 계획 4개 섹션으로 분리 */}
+        <div className="goals-plans-container">
+          <div className="section-header">
+            <h3>🎯 목표 및 실행 계획</h3>
+            <p className="section-description">목표를 명확히 설정하고 구체적인 실행 계획을 수립하세요</p>
+          </div>
+
+          <div className="goals-grid">
+            {/* 단기 목표 */}
+            <div className="form-section goals-section">
+              <h4>🏁 단기 목표 (1주)</h4>
+              <div className="form-group">
+                <label>이번 주 달성할 구체적 목표</label>
+                {useCollaborative && reportId ? (
+                  <div>
+                    <CollaborativeEditor
+                      reportId={reportId}
+                      field="shortTermGoals"
+                      initialContent={shortTermGoals}
+                      onChange={setShortTermGoals}
+                      disabled={false}
+                    />
+                    <div className="collaboration-status">
+                      🚀 실시간 협업 모드: 팀원들과 함께 작성 중
+                    </div>
+                  </div>
+                ) : (
+                  <textarea 
+                    className="form-textarea short-goals" 
+                    value={shortTermGoals} 
+                    onChange={e => setShortTermGoals(e.target.value)}
+                    placeholder="이번 주 안에 달성할 구체적인 목표를 입력하세요
+
+Ex)
+• 로그인 API 개발 완료
+• 메인 페이지 UI 마크업 완성
+• 데이터베이스 스키마 설계 완료"
+                    required
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 중장기 목표 */}
+            <div className="form-section goals-section">
+              <h4>🎯 중장기 목표 (1개월)</h4>
+              <div className="form-group">
+                <label>프로젝트의 전체적 목표</label>
+                {useCollaborative && reportId ? (
+                  <div>
+                    <CollaborativeEditor
+                      reportId={reportId}
+                      field="longTermGoals"
+                      initialContent={longTermGoals}
+                      onChange={setLongTermGoals}
+                      disabled={false}
+                    />
+                    <div className="collaboration-status">
+                      🚀 실시간 협업 모드 활성
+                    </div>
+                  </div>
+                ) : (
+                  <textarea 
+                    className="form-textarea long-goals" 
+                    value={longTermGoals} 
+                    onChange={e => setLongTermGoals(e.target.value)}
+                    placeholder="프로젝트의 전반적인 목표를 입력하세요
+
+Ex)
+• 사용자 관리 시스템 구축
+• 보안 인증 체계 도입
+• 대시보드 및 보고서 기능 완성"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 실행 계획 */}
+            <div className="form-section plans-section">
+              <h4>📅 실행 계획</h4>
+              <div className="form-group">
+                <label>목표 달성을 위한 구체적 실행 방닥</label>
+                {useCollaborative && reportId ? (
+                  <div>
+                    <CollaborativeEditor
+                      reportId={reportId}
+                      field="actionPlans"
+                      initialContent={actionPlans}
+                      onChange={setActionPlans}
+                      disabled={false}
+                    />
+                    <div className="collaboration-status">
+                      🚀 실시간 협업 모드 활성
+                    </div>
+                  </div>
+                ) : (
+                  <textarea 
+                    className="form-textarea action-plans" 
+                    value={actionPlans} 
+                    onChange={e => setActionPlans(e.target.value)}
+                    placeholder="목표를 달성하기 위한 구체적인 실행 방법을 작성하세요
+
+Ex)
+1. 월요일: 사용자 요구사항 분석 및 정리
+2. 화요일: API 설계 및 개발 시작
+3. 수요일-목요일: 쿨드 구현 및 테스트
+4. 금요일: UI 컨포넌트 개발"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 주요 마일스톤 */}
+            <div className="form-section milestones-section">
+              <h4>🏃 주요 마일스톤</h4>
+              <div className="form-group">
+                <label>중요한 중간 목표 및 검증 지점</label>
+                {useCollaborative && reportId ? (
+                  <div>
+                    <CollaborativeEditor
+                      reportId={reportId}
+                      field="milestones"
+                      initialContent={milestones}
+                      onChange={setMilestones}
+                      disabled={false}
+                    />
+                    <div className="collaboration-status">
+                      🚀 실시간 협업 모드 활성
+                    </div>
+                  </div>
+                ) : (
+                  <textarea 
+                    className="form-textarea milestones" 
+                    value={milestones} 
+                    onChange={e => setMilestones(e.target.value)}
+                    placeholder="주요 마일스톤과 검증 기준을 작성하세요
+
+Ex)
+• 1주차: 기본 인증 로직 완성 (80%)
+• 2주차: UI/UX 시안 검토 완료 (90%)
+• 3주차: 통합 테스트 통과 (95%)
+• 4주차: 배포 및 모니터링 체계 구축 (100%)"
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="form-hint goals-hint">
+            💡 <strong>AI 어시스턴트 활용 팩:</strong> 위 버튼의 AI 어시스턴트를 사용하면 팀 유형과 프로젝트 맥락에 맞는 체계적인 목표와 계획을 제안받을 수 있습니다.
+            {useCollaborative && !reportId && ' 협업 모드를 사용하려면 먼저 보고서를 저장해주세요.'}
           </div>
         </div>
 
@@ -305,12 +582,13 @@ Ex)
               <div>
                 <CollaborativeEditor
                   reportId={reportId}
+                  field="issues"
                   initialContent={issues}
                   onChange={setIssues}
                   disabled={false}
                 />
-                <div className="form-hint">
-                  💡 팀원들과 함께 이슈를 공유하고 해결방안을 논의할 수 있습니다.
+                <div className="collaboration-status">
+                  🚀 실시간 협업 모드: 이슈 및 해결방안을 팀원들과 함께 논의
                 </div>
               </div>
             ) : (
@@ -326,7 +604,7 @@ Ex)
 • 기술적 난이도로 인한 일정 지연 우려"
                 />
                 <div className="form-hint">
-                  {!reportId && '보고서 저장 후 협업 편집을 활용할 수 있습니다.'}
+                  {useCollaborative && !reportId ? '⚠️ 협업 모드를 사용하려면 먼저 보고서를 저장해주세요.' : '이슈와 고민사항을 어려워하지 말고 손등하게 작성해주세요. 팀의 성장에 도움이 됩니다.'}
                 </div>
               </>
             )}
@@ -356,7 +634,7 @@ Ex)
           </button>
           <button 
             className="btn-submit"
-            disabled={!teamId || !goals.trim()}
+            disabled={!teamId || (!shortTermGoals.trim() && !longTermGoals.trim() && !actionPlans.trim())}
           >
             💾 보고서 저장
           </button>
