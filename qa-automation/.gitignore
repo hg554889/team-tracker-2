@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Test Results
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Coverage reports
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
