@@ -11,6 +11,12 @@
     "test:roles": "playwright test tests/roles/",
     "test:teams": "playwright test tests/teams/",
     "test:reports": "playwright test tests/reports/",
+    "test:admin": "playwright test tests/admin/",
+    "test:profile": "playwright test tests/profile/",
+    "test:approvals": "playwright test tests/approvals/",
+    "test:notifications": "playwright test tests/notifications/",
+    "test:smoke": "playwright test --grep '@smoke'",
+    "test:critical": "playwright test tests/auth/ tests/roles/",
     "report": "playwright show-report"
   },
   "devDependencies": {
