@@ -13,9 +13,17 @@ test.describe('승인 시스템', () => {
     
     // 회원가입
     await page.goto('/signup');
-    await page.fill('[name="name"]', newUser.name);
-    await page.fill('[name="email"]', newUser.email);
-    await page.fill('[name="password"]', newUser.password);
+    await page.fill('input[type="email"]', newUser.email);
+    await page.fill('input[placeholder="실명을 입력하세요"]', newUser.name);
+    await page.fill('input[placeholder="예: 20241234"]', '20241234');
+    // .env에서 설정한 동아리 선택, 없으면 첫 번째 동아리 선택
+    const clubName = process.env.TEST_CLUB_NAME;
+    if (clubName) {
+      await page.selectOption('select', { label: clubName });
+    } else {
+      await page.selectOption('select', { index: 1 });
+    }
+    await page.fill('input[type="password"]', newUser.password);
     await page.click('button[type="submit"]');
     
     // 클럽 선택 페이지로 이동 확인
@@ -46,9 +54,17 @@ test.describe('승인 시스템', () => {
     
     // 회원가입 및 클럽 선택
     await page.goto('/signup');
-    await page.fill('[name="name"]', newUser.name);
-    await page.fill('[name="email"]', newUser.email);
-    await page.fill('[name="password"]', newUser.password);
+    await page.fill('input[type="email"]', newUser.email);
+    await page.fill('input[placeholder="실명을 입력하세요"]', newUser.name);
+    await page.fill('input[placeholder="예: 20241234"]', '20241234');
+    // .env에서 설정한 동아리 선택, 없으면 첫 번째 동아리 선택
+    const clubName = process.env.TEST_CLUB_NAME;
+    if (clubName) {
+      await page.selectOption('select', { label: clubName });
+    } else {
+      await page.selectOption('select', { index: 1 });
+    }
+    await page.fill('input[type="password"]', newUser.password);
     await page.click('button[type="submit"]');
     
     await page.waitForURL('/select-club');
@@ -69,7 +85,7 @@ test.describe('승인 시스템', () => {
       await expect(page.locator('[data-testid="selected-club"]')).toBeVisible();
       
       // 대기 중에는 다른 페이지 접근 제한
-      await page.goto('/dashboard');
+      await page.goto('/');
       await page.waitForURL('/approval-pending'); // 다시 승인 대기 페이지로
     }
   });
@@ -168,8 +184,8 @@ test.describe('승인 시스템', () => {
     };
     
     await page.goto('/login');
-    await page.fill('[name="email"]', pendingUser.email);
-    await page.fill('[name="password"]', pendingUser.password);
+    await page.fill('input[type="email"]', pendingUser.email);
+    await page.fill('input[type="password"]', pendingUser.password);
     await page.click('button[type="submit"]');
     
     // 승인 대기 페이지로 자동 리다이렉트
@@ -196,8 +212,8 @@ test.describe('승인 시스템', () => {
     // 승인된 사용자로 로그인
     await loginAs(page, 'member');
     
-    // 대시보드 접근 가능
-    await page.goto('/dashboard');
+    // 홈 페이지 접근 가능
+    await page.goto('/');
     await expect(page.locator('[data-testid="dashboard"]')).toBeVisible();
     
     // 팀 페이지 접근 가능
@@ -227,7 +243,7 @@ test.describe('승인 시스템', () => {
     }
     
     // 메인 네비게이션에서도 알림 확인
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     if (await page.locator('[data-testid="approval-notification"]').isVisible()) {
       await expect(page.locator('[data-testid="approval-notification"]')).toBeVisible();

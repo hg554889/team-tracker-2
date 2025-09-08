@@ -7,7 +7,7 @@ test.describe('역할별 접근 제어', () => {
     await loginAs(page, 'admin');
     
     const adminAccessibleRoutes = [
-      routes.protected.dashboard,
+      routes.protected.home,
       routes.protected.teams,
       routes.protected.profile,
       routes.admin.users,
@@ -38,7 +38,7 @@ test.describe('역할별 접근 제어', () => {
     
     // 접근 가능한 페이지들
     const accessibleRoutes = [
-      routes.protected.dashboard,
+      routes.protected.home,
       routes.protected.teams,
       routes.protected.profile,
       routes.executive.users,
@@ -82,7 +82,7 @@ test.describe('역할별 접근 제어', () => {
     await loginAs(page, 'leader');
     
     const accessibleRoutes = [
-      routes.protected.dashboard,
+      routes.protected.home,
       routes.protected.teams,
       routes.protected.profile,
       routes.protected.reportsNew,
@@ -126,7 +126,7 @@ test.describe('역할별 접근 제어', () => {
     await loginAs(page, 'member');
     
     const accessibleRoutes = [
-      routes.protected.dashboard,
+      routes.protected.home,
       routes.protected.teams,
       routes.protected.profile,
       routes.protected.reportsNew,
@@ -167,7 +167,7 @@ test.describe('역할별 접근 제어', () => {
   test('네비게이션 메뉴 - 권한별 메뉴 항목 표시', async ({ page }) => {
     // Admin 로그인 시 모든 메뉴 표시
     await loginAs(page, 'admin');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await expect(page.locator('text=사용자 관리')).toBeVisible();
     await expect(page.locator('text=클럽 관리')).toBeVisible();
@@ -175,7 +175,7 @@ test.describe('역할별 접근 제어', () => {
     
     // Member 로그인 시 기본 메뉴만 표시
     await loginAs(page, 'member');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     const hasAdminMenu = await page.locator('text=사용자 관리').isVisible();
     const hasClubMenu = await page.locator('text=클럽 관리').isVisible();

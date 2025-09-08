@@ -253,7 +253,7 @@ test.describe('알림 시스템', () => {
   test('네비게이션 바 알림 아이콘', async ({ page }) => {
     await loginAs(page, 'member');
     
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     // 네비게이션 바 알림 아이콘 확인
     await expect(page.locator('[data-testid="notification-bell"]')).toBeVisible();

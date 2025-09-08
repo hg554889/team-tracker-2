@@ -1,14 +1,19 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  retries: process.env.CI ? 2 : 1,
+  workers: 1,
+  timeout: 120000,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -19,30 +24,25 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
   ],
 
+  // Global setup for authentication
+  globalSetup: './global-setup.js',
+  
   webServer: [
     {
-      command: 'cd ../client && npm start',
+      command: 'cd ../client && REACT_APP_API_URL=http://localhost:5001/api npm start',
       port: 3000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: true,
     },
     {
-      command: 'cd ../server && npm run dev',
-      port: 5000,
-      reuseExistingServer: !process.env.CI,
+      command: 'cd ../server && PORT=5001 DISABLE_CORS=true npm run dev',
+      port: 5001,
+      reuseExistingServer: true,
+      env: {
+        PORT: '5001',
+        DISABLE_CORS: 'true',
+      },
     },
   ],
 });

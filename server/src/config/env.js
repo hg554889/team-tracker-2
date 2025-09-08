@@ -10,6 +10,7 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 15 * 60 * 1000),
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX ?? 20),
+  DISABLE_CORS: process.env.DISABLE_CORS === 'true',
 };
 
 if (!env.MONGODB_URI || !env.JWT_SECRET) {

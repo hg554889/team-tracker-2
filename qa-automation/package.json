@@ -1,6 +1,7 @@
 {
   "name": "team-tracker-qa-automation",
   "version": "1.0.0",
+  "type": "module",
   "description": "QA Automation tests for Team Tracker v2",
   "scripts": {
     "test": "playwright test",

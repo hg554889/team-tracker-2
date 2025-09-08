@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
+    "dev:test": "DISABLE_CORS=true nodemon src/index.js",
     "start": "node src/index.js"
   },
   "dependencies": {

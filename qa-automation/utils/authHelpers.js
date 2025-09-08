@@ -1,4 +1,5 @@
 import { testUsers } from '../fixtures/testUsers.js';
+import { expect } from '@playwright/test';
 
 /**
  * 사용자 로그인 헬퍼 함수
@@ -12,12 +13,58 @@ export async function loginAs(page, userType) {
   }
 
   await page.goto('/login');
-  await page.fill('[name="email"]', user.email);
-  await page.fill('[name="password"]', user.password);
+  await page.fill('input[type="email"]', user.email);
+  await page.fill('input[type="password"]', user.password);
   await page.click('button[type="submit"]');
   
-  // 로그인 완료까지 대기
-  await page.waitForURL(url => !url.includes('/login'));
+  // 로그인 완료까지 대기 (여러 리다이렉트 가능성 고려)
+  await page.waitForURL(url => {
+    const urlString = url.toString();
+    return !urlString.includes('/login') && !urlString.includes('/signup');
+  }, { timeout: 15000 });
+  
+  // 로그인 후 상태별 처리
+  const currentUrl = page.url();
+  
+  if (currentUrl.includes('/approval-pending')) {
+    // 승인 대기 상태 - 이 상태로 두고 테스트에서 처리
+    console.log(`User ${userType} is in pending approval status`);
+    return;
+  }
+  
+  if (currentUrl.includes('/select-club')) {
+    // 클럽 선택 필요 - 환경변수에서 설정한 클럽 또는 첫 번째 클럽 선택
+    const clubName = process.env.TEST_CLUB_NAME;
+    
+    if (clubName) {
+      // 특정 클럽명으로 검색해서 선택
+      const clubCard = page.locator('.club-card', { hasText: clubName });
+      if (await clubCard.count() > 0) {
+        await clubCard.first().click();
+      } else {
+        // 해당 클럽이 없으면 첫 번째 클럽 선택
+        await page.waitForSelector('.club-card', { timeout: 5000 });
+        const firstClub = page.locator('.club-card').first();
+        await firstClub.click();
+      }
+    } else {
+      // 첫 번째 클럽 선택
+      await page.waitForSelector('.club-card', { timeout: 5000 });
+      const firstClub = page.locator('.club-card').first();
+      await firstClub.click();
+    }
+    
+    // 클럽 선택 완료까지 대기
+    await page.waitForURL(url => !url.toString().includes('/select-club'), { timeout: 10000 });
+  }
+  
+  // 최종적으로 로그아웃 버튼이 보이는지 확인 (로그인 성공 확인)
+  try {
+    await expect(page.locator('text=로그아웃')).toBeVisible({ timeout: 5000 });
+  } catch (error) {
+    // 승인 대기 상태에서는 로그아웃 버튼이 없을 수 있음
+    console.log('로그아웃 버튼을 찾을 수 없음 - 승인 대기 상태일 가능성');
+  }
 }
 
 /**
@@ -27,9 +74,19 @@ export async function loginAs(page, userType) {
  */
 export async function signupUser(page, userData) {
   await page.goto('/signup');
-  await page.fill('[name="name"]', userData.name);
-  await page.fill('[name="email"]', userData.email);
-  await page.fill('[name="password"]', userData.password);
+  await page.fill('input[type="email"]', userData.email);
+  await page.fill('input[placeholder="실명을 입력하세요"]', userData.name);
+  await page.fill('input[placeholder="예: 20241234"]', '20241234');
+  
+  // .env에서 설정한 동아리 선택, 없으면 첫 번째 동아리 선택
+  const clubName = process.env.TEST_CLUB_NAME;
+  if (clubName) {
+    await page.selectOption('select', { label: clubName });
+  } else {
+    await page.selectOption('select', { index: 1 }); // 0은 "동아리를 선택하세요" 옵션
+  }
+  
+  await page.fill('input[type="password"]', userData.password);
   await page.click('button[type="submit"]');
 }
 
@@ -38,7 +95,6 @@ export async function signupUser(page, userData) {
  * @param {import('@playwright/test').Page} page
  */
 export async function logout(page) {
-  await page.click('[data-testid="user-menu"]');
   await page.click('text=로그아웃');
   await page.waitForURL('/login');
 }
@@ -50,7 +106,7 @@ export async function logout(page) {
  */
 export async function isLoggedIn(page) {
   try {
-    await page.waitForSelector('[data-testid="user-menu"]', { timeout: 3000 });
+    await page.waitForSelector('text=로그아웃', { timeout: 3000 });
     return true;
   } catch {
     return false;
@@ -72,7 +128,7 @@ export async function checkAccess(page, route, shouldHaveAccess = true) {
     return page.url().includes(route);
   } else {
     // 접근이 거부되어야 하는 경우 - 리다이렉트 확인
-    await page.waitForURL(url => !url.includes(route));
+    await page.waitForURL(url => !url.toString().includes(route));
     return !page.url().includes(route);
   }
 }

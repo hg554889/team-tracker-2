@@ -34,3 +34,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Authentication states (contains sensitive tokens)
+.auth/

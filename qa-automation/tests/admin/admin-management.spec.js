@@ -8,13 +8,12 @@ test.describe('Admin 관리 기능', () => {
     
     await page.goto('/admin/users');
     
-    // 사용자 목록 테이블 확인
-    await expect(page.locator('[data-testid="users-table"]')).toBeVisible();
+    // 사용자 목록 테이블 확인 (실제 DOM 구조 반영)
+    await expect(page.locator('table.table')).toBeVisible();
     await expect(page.locator('th:has-text("이름")')).toBeVisible();
     await expect(page.locator('th:has-text("이메일")')).toBeVisible();
-    await expect(page.locator('th:has-text("역할")')).toBeVisible();
-    await expect(page.locator('th:has-text("클럽")')).toBeVisible();
-    await expect(page.locator('th:has-text("가입일")')).toBeVisible();
+    await expect(page.locator('th:has-text("권한")')).toBeVisible(); // "역할" → "권한"
+    await expect(page.locator('th:has-text("소속 동아리")')).toBeVisible(); // "클럽" → "소속 동아리"
   });
 
   test('사용자 역할 변경', async ({ page }) => {

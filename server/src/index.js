@@ -39,16 +39,27 @@ const httpServer = createServer(app);
 app.use(helmet());
 app.use(morgan('dev'));
 
-// 멀티 오리진 CORS 설정
-app.use(cors({
-  origin(origin, cb) {
-    if (!origin) return cb(null, true); // Postman 등 허용
-    return env.CLIENT_URLS.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'));
-  },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  allowedHeaders: 'Content-Type,Authorization',
-  credentials: false,
-}));
+// CORS 설정 (테스트 환경에서는 비활성화 가능)
+if (env.DISABLE_CORS) {
+  console.log('[CORS] CORS disabled for testing');
+  app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: '*',
+  }));
+} else {
+  // 멀티 오리진 CORS 설정
+  app.use(cors({
+    origin(origin, cb) {
+      if (!origin) return cb(null, true); // Postman 등 허용
+      return env.CLIENT_URLS.includes(origin) ? cb(null, true) : cb(new Error('Not allowed by CORS'));
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: 'Content-Type,Authorization',
+    credentials: false,
+  }));
+}
 app.options('*', cors());
 
 app.use(express.json());

@@ -11,7 +11,7 @@ export const routes = {
 
   // 인증 필요 라우트
   protected: {
-    dashboard: '/',
+    home: '/', // Dashboard가 아닌 home으로 정정
     selectClub: '/select-club',
     profile: '/profile',
     teams: '/teams',

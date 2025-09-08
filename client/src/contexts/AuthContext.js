@@ -27,10 +27,12 @@ export const AuthProvider = ({ children }) => {
 
   // 로그아웃 함수
   const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setUser(null);
-    window.dispatchEvent(new CustomEvent('userLoggedOut'));
-  }, []);
+    return new Promise(resolve => {
+      localStorage.removeItem('token');
+      setUser(null);
+      resolve();
+    });
+  }, [setUser]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');

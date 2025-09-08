@@ -1,6 +1,7 @@
 # 🚀 Team Tracker v2 QA 자동화 완전 사용 가이드
 
 ## 📋 목차
+
 1. [시스템 요구사항](#시스템-요구사항)
 2. [설치 및 초기 설정](#설치-및-초기-설정)
 3. [테스트 실행 방법](#테스트-실행-방법)
@@ -14,16 +15,19 @@
 ## 🔧 시스템 요구사항
 
 ### **하드웨어**
+
 - **RAM**: 최소 8GB (권장 16GB)
 - **저장공간**: 최소 2GB 여유 공간
 - **프로세서**: Intel i5 이상 또는 동급 AMD
 
 ### **소프트웨어**
+
 - **Node.js**: v16.0.0 이상
 - **npm**: v7.0.0 이상
 - **OS**: Windows 10/11, macOS 10.15+, Ubuntu 18.04+
 
 ### **네트워크**
+
 - 인터넷 연결 (브라우저 다운로드용)
 - 로컬호스트 포트: 3000, 5000번 사용 가능
 
@@ -32,12 +36,14 @@
 ## 📦 설치 및 초기 설정
 
 ### **1단계: 프로젝트 클론 및 이동**
+
 ```bash
 # 프로젝트 루트 디렉토리에서
 cd qa-automation
 ```
 
 ### **2단계: 의존성 설치**
+
 ```bash
 # Playwright와 모든 필수 패키지 설치
 npm install
@@ -50,6 +56,7 @@ npx playwright install-deps
 ```
 
 ### **3단계: 환경 설정**
+
 ```bash
 # 환경 파일 복사
 cp .env.example .env
@@ -61,6 +68,7 @@ TEST_ADMIN_PASSWORD=QAAdmin123!
 ```
 
 ### **4단계: 테스트 사용자 생성**
+
 ```bash
 # 데이터베이스에 테스트 사용자 추가 (수동 또는 시드 스크립트)
 # fixtures/testUsers.js에 정의된 사용자들을 실제 DB에 생성
@@ -98,7 +106,7 @@ npm run test:auth
 # 👥 권한 테스트만 실행
 npm run test:roles
 
-# 👫 팀 관리 테스트만 실행  
+# 👫 팀 관리 테스트만 실행
 npm run test:teams
 
 # 📝 보고서 테스트만 실행
@@ -150,6 +158,7 @@ npx playwright show-report
 ```
 
 **보고서 내용:**
+
 - ✅ 성공/실패 테스트 개수
 - ⏱️ 실행 시간 통계
 - 🖼️ 실패 시 스크린샷
@@ -170,6 +179,7 @@ Running 47 tests using 4 workers
 ```
 
 **상태 표시:**
+
 - ✅ **통과**: 테스트 성공
 - ❌ **실패**: 테스트 실패 (에러 내용 표시)
 - ⏭️ **건너뜀**: 조건부로 스킵된 테스트
@@ -196,15 +206,15 @@ npx playwright test --reporter=list --verbose
 
 ```javascript
 // tests/custom/example.spec.js
-import { test, expect } from '@playwright/test';
-import { loginAs } from '../../utils/authHelpers.js';
+import { test, expect } from "@playwright/test";
+import { loginAs } from "../../utils/authHelpers.js";
 
-test.describe('커스텀 기능 테스트', () => {
-  test('새로운 기능 테스트', async ({ page }) => {
-    await loginAs(page, 'member');
-    
-    await page.goto('/custom-page');
-    await expect(page.locator('h1')).toContainText('커스텀 페이지');
+test.describe("커스텀 기능 테스트", () => {
+  test("새로운 기능 테스트", async ({ page }) => {
+    await loginAs(page, "member");
+
+    await page.goto("/custom-page");
+    await expect(page.locator("h1")).toContainText("커스텀 페이지");
   });
 });
 ```
@@ -215,11 +225,11 @@ test.describe('커스텀 기능 테스트', () => {
 // fixtures/testUsers.js 수정
 export const testUsers = {
   customRole: {
-    name: 'Custom User',
-    email: 'custom@test.com', 
-    password: 'Custom123!',
-    role: 'CUSTOM_ROLE'
-  }
+    name: "Custom User",
+    email: "custom@test.com",
+    password: "Custom123!",
+    role: "CUSTOM_ROLE",
+  },
 };
 ```
 
@@ -228,7 +238,7 @@ export const testUsers = {
 ```javascript
 // utils/customHelpers.js
 export async function createCustomData(page, data) {
-  await page.goto('/custom/create');
+  await page.goto("/custom/create");
   // 커스텀 로직 구현
 }
 ```
@@ -240,18 +250,18 @@ export async function createCustomData(page, data) {
 export default defineConfig({
   // 타임아웃 조정
   timeout: 60000, // 60초
-  
+
   // 재시도 횟수
   retries: 3,
-  
+
   // 새로운 프로젝트 추가
   projects: [
     {
-      name: 'custom-tests',
-      testDir: './tests/custom',
-      use: { ...devices['Desktop Chrome'] }
-    }
-  ]
+      name: "custom-tests",
+      testDir: "./tests/custom",
+      use: { ...devices["Desktop Chrome"] },
+    },
+  ],
 });
 ```
 
@@ -262,24 +272,30 @@ export default defineConfig({
 ### **일반적인 문제들**
 
 #### **1. 포트 충돌 오류**
+
 ```bash
 Error: Port 3000 is already in use
 ```
+
 **해결방법:**
+
 ```bash
 # 포트 사용 프로세스 확인
 netstat -ano | findstr :3000  # Windows
 lsof -i :3000                # Mac/Linux
 
 # 프로세스 종료 후 재시도
-kill -9 <PID>
+taskkill /F /PID <Port_num>
 ```
 
 #### **2. 브라우저 다운로드 실패**
+
 ```bash
 Error: Download failed
 ```
+
 **해결방법:**
+
 ```bash
 # 브라우저 재다운로드
 npx playwright install --force
@@ -289,13 +305,16 @@ npm config set proxy http://proxy.company.com:8080
 ```
 
 #### **3. 테스트 타임아웃**
+
 ```bash
 Error: Test timeout of 30000ms exceeded
 ```
+
 **해결방법:**
+
 ```javascript
 // 개별 테스트 타임아웃 늘리기
-test('느린 테스트', async ({ page }) => {
+test("느린 테스트", async ({ page }) => {
   test.setTimeout(60000); // 60초
   // 테스트 코드
 });
@@ -305,16 +324,19 @@ test('느린 테스트', async ({ page }) => {
 ```
 
 #### **4. 요소 찾기 실패**
+
 ```bash
 Error: Locator not found
 ```
+
 **해결방법:**
+
 ```javascript
 // 요소가 로드될 때까지 대기
 await page.waitForSelector('[data-testid="element"]');
 
 // 조건부 대기
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState("networkidle");
 
 // 더 구체적인 선택자 사용
 await page.locator('[data-testid="specific-element"]').click();
@@ -355,44 +377,44 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       mongodb:
         image: mongo:latest
         ports:
           - 27017:27017
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    
-    - name: Install dependencies
-      run: |
-        cd qa-automation
-        npm ci
-        npx playwright install --with-deps
-    
-    - name: Start application servers
-      run: |
-        cd server && npm install && npm run dev &
-        cd client && npm install && npm start &
-        sleep 30
-    
-    - name: Run QA tests
-      run: |
-        cd qa-automation
-        npm test
-    
-    - name: Upload test results
-      uses: actions/upload-artifact@v3
-      if: failure()
-      with:
-        name: playwright-report
-        path: qa-automation/playwright-report/
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: |
+          cd qa-automation
+          npm ci
+          npx playwright install --with-deps
+
+      - name: Start application servers
+        run: |
+          cd server && npm install && npm run dev &
+          cd client && npm install && npm start &
+          sleep 30
+
+      - name: Run QA tests
+        run: |
+          cd qa-automation
+          npm test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: playwright-report
+          path: qa-automation/playwright-report/
 ```
 
 ### **Docker 컨테이너 실행**
@@ -420,6 +442,7 @@ docker run --rm -v $(pwd)/qa-automation/test-results:/app/test-results team-trac
 ## 📈 성능 최적화
 
 ### **병렬 실행 최적화**
+
 ```bash
 # CPU 코어 수에 맞춘 워커 설정
 npx playwright test --workers=$(nproc)  # Linux
@@ -427,6 +450,7 @@ npx playwright test --workers=4         # 수동 설정
 ```
 
 ### **선택적 테스트 실행**
+
 ```javascript
 // package.json에 스크립트 추가
 {
@@ -439,6 +463,7 @@ npx playwright test --workers=4         # 수동 설정
 ```
 
 ### **캐싱 활용**
+
 ```bash
 # 브라우저 캐시 재사용
 export PLAYWRIGHT_BROWSERS_PATH=~/.cache/playwright

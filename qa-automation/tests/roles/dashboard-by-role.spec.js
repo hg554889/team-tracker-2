@@ -4,7 +4,7 @@ import { loginAs } from '../../utils/authHelpers.js';
 test.describe('역할별 대시보드 표시', () => {
   test('ADMIN 대시보드 - 시스템 전체 관리 위젯 표시', async ({ page }) => {
     await loginAs(page, 'admin');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     // Admin 전용 위젯들 확인
     await expect(page.locator('[data-testid="admin-dashboard"]')).toBeVisible();
@@ -21,7 +21,7 @@ test.describe('역할별 대시보드 표시', () => {
 
   test('EXECUTIVE 대시보드 - 클럽 관리 위젯 표시', async ({ page }) => {
     await loginAs(page, 'executive');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     // Executive 전용 위젯들 확인
     await expect(page.locator('[data-testid="executive-dashboard"]')).toBeVisible();
@@ -40,7 +40,7 @@ test.describe('역할별 대시보드 표시', () => {
 
   test('LEADER 대시보드 - 팀 관리 위젯 표시', async ({ page }) => {
     await loginAs(page, 'leader');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     // Leader 전용 위젯들 확인
     await expect(page.locator('[data-testid="leader-dashboard"]')).toBeVisible();
@@ -57,7 +57,7 @@ test.describe('역할별 대시보드 표시', () => {
 
   test('MEMBER 대시보드 - 기본 활동 위젯 표시', async ({ page }) => {
     await loginAs(page, 'member');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     // Member 전용 위젯들 확인
     await expect(page.locator('[data-testid="member-dashboard"]')).toBeVisible();
@@ -81,7 +81,7 @@ test.describe('역할별 대시보드 표시', () => {
   test('대시보드 통계 위젯 - 권한별 다른 데이터 표시', async ({ page }) => {
     // Admin - 전체 시스템 통계
     await loginAs(page, 'admin');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await expect(page.locator('[data-testid="total-users-count"]')).toBeVisible();
     await expect(page.locator('[data-testid="total-clubs-count"]')).toBeVisible();
@@ -89,7 +89,7 @@ test.describe('역할별 대시보드 표시', () => {
     
     // Leader - 내 팀 통계만
     await loginAs(page, 'leader');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await expect(page.locator('[data-testid="my-team-members-count"]')).toBeVisible();
     await expect(page.locator('[data-testid="my-team-reports-count"]')).toBeVisible();
@@ -102,7 +102,7 @@ test.describe('역할별 대시보드 표시', () => {
   test('알림 센터 - 권한별 다른 알림 표시', async ({ page }) => {
     // Admin - 시스템 전체 알림
     await loginAs(page, 'admin');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await page.click('[data-testid="notification-center"]');
     
@@ -111,7 +111,7 @@ test.describe('역할별 대시보드 표시', () => {
     
     // Member - 개인 관련 알림만
     await loginAs(page, 'member');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await page.click('[data-testid="notification-center"]');
     
@@ -126,7 +126,7 @@ test.describe('역할별 대시보드 표시', () => {
   test('빠른 작업 버튼 - 권한에 따른 동작 제한', async ({ page }) => {
     // Leader 권한으로 팀 생성 버튼 클릭
     await loginAs(page, 'leader');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await page.click('text=새 팀 만들기');
     await page.waitForURL('/teams/new');
@@ -136,7 +136,7 @@ test.describe('역할별 대시보드 표시', () => {
     
     // Member 권한으로는 팀 생성 버튼이 없어야 함
     await loginAs(page, 'member');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     const hasCreateTeamButton = await page.locator('text=새 팀 만들기').isVisible();
     expect(hasCreateTeamButton).toBe(false);
@@ -145,14 +145,14 @@ test.describe('역할별 대시보드 표시', () => {
   test('차트 및 그래프 - 권한별 데이터 범위', async ({ page }) => {
     // Admin - 전체 시스템 차트
     await loginAs(page, 'admin');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await expect(page.locator('[data-testid="system-performance-chart"]')).toBeVisible();
     await expect(page.locator('[data-testid="user-growth-chart"]')).toBeVisible();
     
     // Leader - 팀별 차트만
     await loginAs(page, 'leader');
-    await page.goto('/dashboard');
+    await page.goto('/');
     
     await expect(page.locator('[data-testid="team-progress-chart"]')).toBeVisible();
     await expect(page.locator('[data-testid="team-activity-chart"]')).toBeVisible();
