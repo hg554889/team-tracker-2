@@ -8,27 +8,37 @@ test.describe('보고서 CRUD 기능', () => {
     await loginAs(page, 'member');
     
     await page.goto('/reports/new');
+    await page.waitForTimeout(2000);
     
-    // 보고서 생성 폼 확인
-    await expect(page.locator('[name="title"]')).toBeVisible();
-    await expect(page.locator('[name="progress"]')).toBeVisible();
-    await expect(page.locator('[name="goals"]')).toBeVisible();
-    await expect(page.locator('[name="issues"]')).toBeVisible();
+    // 보고서 생성 폼 확인 (실제 구조: 4 inputs, 5 textareas)
+    await expect(page.locator('h1:has-text("보고서 작성")')).toBeVisible(); // 페이지 제목
+    await expect(page.locator('input').first()).toBeVisible(); // input 필드들
+    await expect(page.locator('textarea').first()).toBeVisible(); // textarea 필드들
     
     const reportTitle = `QA 테스트 보고서 ${Date.now()}`;
     
-    await page.fill('[name="title"]', reportTitle);
-    await page.fill('[name="progress"]', '75');
-    await page.fill('[name="goals"]', '백엔드 API 개발 완료');
-    await page.fill('[name="issues"]', '데이터베이스 연결 이슈 해결됨');
-    await page.fill('[name="deadline"]', '2024-12-31');
+    // 먼저 팀 선택
+    await page.selectOption('select.form-input', { index: 1 }); // 첫 번째 팀 선택
     
-    await page.click('button[type="submit"]');
+    // 진행률 입력 (실제 클래스명 사용)
+    await page.fill('input.form-input.progress-input', '75');
     
-    // 보고서 상세 페이지로 이동 확인
-    await waitForPageLoad(page);
-    await expect(page.locator(`text=${reportTitle}`)).toBeVisible();
-    await expect(page.locator('text=75%')).toBeVisible();
+    // 단기 목표 입력 (실제 클래스명 사용)
+    await page.fill('textarea.form-textarea.short-goals', '백엔드 API 개발 75% 완료\n로그인 시스템 구현 완료\nDB 연결 이슈 해결됨');
+    
+    // 장기 목표 입력 (실제 클래스명 사용)
+    await page.fill('textarea.form-textarea.long-goals', '프로젝트 완성도 향상\n사용자 경험 개선\n시스템 안정성 확보');
+    
+    // 실행 계획 입력 (실제 클래스명 사용)
+    await page.fill('textarea.form-textarea.action-plans', '1. API 테스트 완료\n2. 프론트엔드 통합\n3. 배포 준비');
+    
+    await page.click('button.btn-submit');
+    
+    // 성공 후 팀 페이지로 리다이렉트되기를 기다림 (nav(`/teams/${teamId}#reports`))
+    await page.waitForURL('**/teams/**#reports', { timeout: 10000 });
+    
+    // 성공 확인 - 팀 페이지의 보고서 섹션에서 생성된 내용 확인
+    await expect(page.locator('text=75%').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('보고서 생성 - 필수 필드 누락 시 validation', async ({ page }) => {
@@ -36,13 +46,13 @@ test.describe('보고서 CRUD 기능', () => {
     
     await page.goto('/reports/new');
     
-    // 제목만 입력하고 제출
-    await page.fill('[name="title"]', '제목만 입력');
+    // 진행률만 입력하고 제출 (다른 필드 비워둠)
+    await page.fill('input[type="number"].progress-input', '50');
     await page.click('button[type="submit"]');
     
-    // validation 에러 확인
-    const progressField = page.locator('[name="progress"]');
-    await expect(progressField).toHaveAttribute('required');
+    // validation 에러 확인 - required 필드들이 비어있어야 함
+    const shortGoalsField = page.locator('textarea.short-goals');
+    await expect(shortGoalsField).toHaveAttribute('required');
   });
 
   test('보고서 목록 조회', async ({ page }) => {
@@ -103,17 +113,17 @@ test.describe('보고서 CRUD 기능', () => {
       
       await page.click('text=수정');
       
-      // 수정 폼으로 이동
-      await expect(page.locator('[name="title"]')).toBeVisible();
+      // 수정 폼으로 이동 - 실제 필드들 확인
+      await expect(page.locator('textarea.short-goals')).toBeVisible();
       
-      const updatedTitle = `수정된 보고서 제목 ${Date.now()}`;
-      await page.fill('[name="title"]', updatedTitle);
-      await page.fill('[name="progress"]', '85');
+      const updatedGoals = `수정된 단기 목표 ${Date.now()}`;
+      await page.fill('textarea.short-goals', updatedGoals);
+      await page.fill('input[type="number"].progress-input', '85');
       
       await page.click('button[type="submit"]');
       
       // 수정된 내용 확인
-      await expect(page.locator(`text=${updatedTitle}`)).toBeVisible();
+      await expect(page.locator(`text=${updatedGoals}`)).toBeVisible();
       await expect(page.locator('text=85%')).toBeVisible();
     }
   });
@@ -148,10 +158,12 @@ test.describe('보고서 CRUD 기능', () => {
     
     await page.goto('/reports/new');
     
-    await page.fill('[name="title"]', '첨부파일 테스트 보고서');
-    await page.fill('[name="progress"]', '50');
-    await page.fill('[name="goals"]', '파일 첨부 테스트');
-    await page.fill('[name="issues"]', '없음');
+    await page.fill('input[type="number"].progress-input', '50');
+    await page.fill('textarea.short-goals', '파일 첨부 테스트 목표');
+    await page.fill('textarea.long-goals', '장기적 파일 관리 목표');
+    await page.fill('textarea.action-plans', '파일 시스템 구축 계획');
+    await page.fill('textarea.milestones', '파일 첨부 기능 완성');
+    await page.fill('textarea.issues-textarea', '파일 업로드 이슈 없음');
     
     // 파일 첨부 (테스트용 텍스트 파일 생성)
     const fileContent = 'QA 테스트용 파일입니다.';
