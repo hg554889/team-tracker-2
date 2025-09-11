@@ -8,7 +8,7 @@ const INVITES = new Map(); // dev용 메모리 저장 (prod는 컬렉션 권장)
 
 // 초대 링크 생성 (리더만)
 router.post('/create', requireAuth, async (req, res) => {
-  const { teamId, role = 'MEMBER', expiresInMinutes = 60 } = req.body;
+  const { teamId, role = 'MEMBER', expiresInMinutes = 180 } = req.body;
   const team = await Team.findById(teamId);
   if (!team) return res.status(404).json({ error: 'TeamNotFound' });
   const requester = req.user.id;
@@ -48,7 +48,7 @@ router.post('/:code/accept', requireAuth, async (req, res) => {
   const exists = (team.members||[]).some(m => m?.user?.toString() === userId);
   if (!exists) team.members.push({ user: userId, role: it.role });
   await team.save();
-  INVITES.delete(req.params.code);
+  // 초대 코드를 삭제하지 않음 - 여러 명이 같은 링크 사용 가능
   res.json({ ok: true, teamId: team.id });
 });
 
