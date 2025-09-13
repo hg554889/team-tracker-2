@@ -17,7 +17,12 @@ const createBody = z.object({
   teamId: z.string().min(1),
   weekOf: dateLike,
   progress: z.coerce.number().min(0).max(100),
+  // 단일 goals는 하위 호환용으로 유지
   goals: z.string().default(''),
+  // 주간 보고용 세부 필드
+  shortTermGoals: z.string().default(''),
+  actionPlans: z.string().default(''),
+  milestones: z.string().default(''),
   issues: z.string().default(''),
   dueAt: dateLike.optional(),
   attachments: z.array(z.any()).optional(),
@@ -30,7 +35,7 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
   try {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error:'ValidationError', details:parsed.error.flatten() });
-    const { teamId, weekOf, progress, goals, issues, dueAt, attachments } = parsed.data;
+    const { teamId, weekOf, progress, goals, shortTermGoals, actionPlans, milestones, issues, dueAt, attachments } = parsed.data;
 
     const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ error: 'TeamNotFound' });
@@ -60,6 +65,9 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
       clubId: team.clubId,
       progress,
       goals,
+      shortTermGoals,
+      actionPlans,
+      milestones,
       issues,
       dueAt: dueDate || undefined,
       ...(attachments && { attachments })
@@ -248,6 +256,9 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const up = {};
     if (req.body.progress !== undefined) up.progress = Number(req.body.progress);
     if (req.body.goals !== undefined) up.goals = req.body.goals;
+    if (req.body.shortTermGoals !== undefined) up.shortTermGoals = req.body.shortTermGoals;
+    if (req.body.actionPlans !== undefined) up.actionPlans = req.body.actionPlans;
+    if (req.body.milestones !== undefined) up.milestones = req.body.milestones;
     if (req.body.issues !== undefined) up.issues = req.body.issues;
     if (req.body.dueAt) up.dueAt = new Date(req.body.dueAt);
 
