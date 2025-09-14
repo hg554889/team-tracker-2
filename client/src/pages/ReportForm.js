@@ -152,7 +152,9 @@ export default function ReportForm() {
         teamId,
         weekOf: new Date().toISOString(),
         progress: Number(progress),
-        shortTermGoals,
+        // 서버 스키마에 맞춰 goals 필드에 '목표설정' 내용을 담습니다.
+        goals: shortTermGoals,
+        // 참고: 추가 필드들은 서버에서 무시될 수 있습니다.
         actionPlans,
         milestones,
         issues,

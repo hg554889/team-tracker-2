@@ -949,7 +949,7 @@ export default function TeamDetail() {
                         whiteSpace: 'nowrap',
                         fontSize: '14px'
                       }}>
-                        {r.goals || '목표 없음'}
+                        {(r.goals || r.shortTermGoals) || '목표 없음'}
                       </td>
                       <td style={{ 
                         maxWidth: '150px', 
