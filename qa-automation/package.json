@@ -1,0 +1,29 @@
+{
+  "name": "team-tracker-qa-automation",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "QA Automation tests for Team Tracker v2",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:auth": "playwright test tests/auth/",
+    "test:roles": "playwright test tests/roles/",
+    "test:teams": "playwright test tests/teams/",
+    "test:reports": "playwright test tests/reports/",
+    "test:admin": "playwright test tests/admin/",
+    "test:profile": "playwright test tests/profile/",
+    "test:approvals": "playwright test tests/approvals/",
+    "test:notifications": "playwright test tests/notifications/",
+    "test:smoke": "playwright test --grep '@smoke'",
+    "test:critical": "playwright test tests/auth/ tests/roles/",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

@@ -39,13 +39,16 @@ export default function Signup() {
     }
 
     try {
-      const res = await signup({
-        email,
-        username,
+      // 클라이언트에서도 기본 정규화 적용(서버와 일치)
+      const payload = {
+        email: email.trim().toLowerCase(),
+        username: username.trim(),
         password,
         studentId: studentId.trim(),
-        clubId,
-      });
+        clubId: clubId.trim(),
+      };
+
+      const res = await signup(payload);
       localStorage.setItem("token", res.data.token);
       setUser(res.data.user);
 
