@@ -6,13 +6,13 @@ export default function AIAssistant({
   onTemplateGenerated, 
   onProgressPredicted, 
   onGoalsSuggested,
-  onActionPlanSuggested,
+  onNextWeekPlanSuggested,
   onSmartAnalysis,
-  // 새로운 필드별 콜백들
-  onApplyToShortTermGoals,
-  onApplyToLongTermGoals,
-  onApplyToActionPlans,
-  onApplyToMilestones,
+  // 새로운 필드별 콜백들 (새로운 보고서 형식에 맞춤)
+  onApplyToWeeklyGoalsPeriod,
+  onApplyToProgressDetails,
+  onApplyToAchievements,
+  onApplyToNextWeekPlans,
   currentProgress = 0,
   teamType: initialTeamType = '', // 이름 변경
   projectCategory: initialProjectCategory = '', // 이름 변경
@@ -42,10 +42,25 @@ export default function AIAssistant({
       });
 
       const template = response.data.template;
-      setResults(prev => ({ ...prev, template }));
-      
+
+      // 서버에서 이미 새로운 형식으로 템플릿을 생성하므로 직접 사용
+      // 만약 일부 필드가 누락된 경우에만 기본값 제공
+      const enhancedTemplate = {
+        ...template,
+        weeklyGoalsPeriod: template.weeklyGoalsPeriod || template.goals || `📅 ${teamType} - ${projectCategory} 주간 목표\n• 구체적인 목표 1 (기간: ${new Date().toISOString().slice(0, 10)} ~ ${new Date(Date.now() + 6*24*60*60*1000).toISOString().slice(0, 10)})\n• 달성 가능한 단기 목표 설정\n• 팀 협업 효율성 향상`,
+        progressDetails: template.progressDetails || `📝 이번 주 진행 내역\n• 월요일: 프로젝트 계획 및 설계 검토\n• 화요일-수요일: 핵심 기능 개발 진행\n• 목요일: 테스트 및 품질 검증\n• 금요일: 문서화 및 주간 정리`,
+        achievements: template.achievements || `🏆 주요 성과\n• 핵심 기능 구현 완료\n• 코드 품질 기준 달성\n• 팀워크 향상 및 소통 개선`,
+        completedTasks: template.completedTasks || `✅ 완료된 업무\n✅ 기본 구조 설계 완료\n✅ 핵심 로직 구현\n✅ 단위 테스트 작성`,
+        incompleteTasks: template.incompleteTasks || `❌ 미완료 업무\n❌ 추가 기능 개발 (다음 주 우선 진행)\n❌ 통합 테스트 (리소스 확보 후 진행)`,
+        nextWeekPlans: template.nextWeekPlans || `📋 다음주 계획\n• 미완료 업무 우선 완료\n• 추가 기능 개발 착수\n• 중간 점검 및 품질 검토`,
+        issues: template.issues || `⚠️ 이슈 및 고민사항\n• 기술적 리스크 요인 식별 및 대응\n• 일정 지연 가능성 모니터링\n• 리소스 부족 시 우선순위 조정`
+      };
+
+      setResults(prev => ({ ...prev, template: enhancedTemplate }));
+
+      // 자동으로 템플릿을 필드에 적용
       if (onTemplateGenerated) {
-        onTemplateGenerated(template);
+        onTemplateGenerated(enhancedTemplate);
       }
 
       // 성공 메시지
@@ -213,8 +228,8 @@ export default function AIAssistant({
       setResults(prev => ({ ...prev, actionPlan: mockActionPlan }));
       
       // ReportForm에 결과 전달
-      if (onActionPlanSuggested) {
-        onActionPlanSuggested(mockActionPlan);
+      if (onNextWeekPlanSuggested) {
+        onNextWeekPlanSuggested(mockActionPlan);
       }
       
       window.dispatchEvent(new CustomEvent('toast', {
@@ -268,8 +283,8 @@ export default function AIAssistant({
     setLoading(true);
     try {
       // 현재 내용 기반 분석 데이터 생성
-      const hasGoals = currentGoals.shortTermGoals || currentGoals.longTermGoals;
-      const hasPlans = currentPlans.actionPlans || currentPlans.milestones;
+      const hasGoals = currentGoals.weeklyGoalsPeriod;
+      const hasPlans = currentPlans.progressDetails || currentPlans.achievements || currentPlans.nextWeekPlans;
       
       let score = 50; // 기본 점수
       let strengths = [];
@@ -342,9 +357,9 @@ export default function AIAssistant({
     }
   };
 
-  // 목표를 특정 필드에 직접 적용
+  // 목표를 특정 필드에 직접 적용 (새로운 보고서 형식에 맞춤)
   const handleApplyGoalsToField = (fieldType) => {
-    const goalsResult = results.goals;
+    const goalsResult = results.suggestions;
     if (!goalsResult) {
       window.dispatchEvent(new CustomEvent('toast', {
         detail: { type: 'warning', msg: '먼저 목표를 생성해주세요.' }
@@ -353,17 +368,40 @@ export default function AIAssistant({
     }
 
     let content = '';
-    if (fieldType === 'short' && goalsResult.shortTermGoals) {
-      content = goalsResult.shortTermGoals.map((goal, index) => `${index + 1}. ${goal}`).join('\n');
-      onApplyToShortTermGoals?.(content);
-    } else if (fieldType === 'long' && (goalsResult.longTermGoals || goalsResult.mediumTermGoals)) {
-      const longTerm = goalsResult.longTermGoals || goalsResult.mediumTermGoals || [];
-      content = longTerm.map((goal, index) => `${index + 1}. ${goal}`).join('\n');
-      onApplyToLongTermGoals?.(content);
-    } else if (fieldType === 'milestones' && goalsResult.keyMilestones) {
-      content = goalsResult.keyMilestones.map((milestone, index) => `${index + 1}. ${milestone}`).join('\n');
-      onApplyToMilestones?.(content);
+    if (fieldType === 'weeklyGoals' && (goalsResult.shortTermGoals || goalsResult.weeklyGoalsPeriod)) {
+      const goals = goalsResult.weeklyGoalsPeriod || goalsResult.shortTermGoals || [];
+      content = goals.map((goal, index) => `${index + 1}. ${goal}`).join('\n');
+      onApplyToWeeklyGoalsPeriod?.(content);
+    } else if (fieldType === 'achievements' && goalsResult.achievements) {
+      content = goalsResult.achievements.map((achievement, index) => `${index + 1}. ${achievement}`).join('\n');
+      onApplyToAchievements?.(content);
+    } else if (fieldType === 'nextWeek' && goalsResult.nextWeekPlans) {
+      content = goalsResult.nextWeekPlans.map((plan, index) => `${index + 1}. ${plan}`).join('\n');
+      onApplyToNextWeekPlans?.(content);
     }
+  };
+
+  // 진행 내역 생성 및 적용
+  const handleGenerateProgressDetails = () => {
+    const template = results.template;
+    if (!template) {
+      window.dispatchEvent(new CustomEvent('toast', {
+        detail: { type: 'warning', msg: '먼저 템플릿을 생성해주세요.' }
+      }));
+      return;
+    }
+
+    // 템플릿의 progressDetails를 진행 내역 필드에 적용
+    if (template.progressDetails && onApplyToProgressDetails) {
+      onApplyToProgressDetails(template.progressDetails);
+    } else if (template.tips) {
+      // tips를 진행 내역으로 활용
+      onApplyToProgressDetails(`이번 주 진행 내역:\n${template.tips}`);
+    }
+
+    window.dispatchEvent(new CustomEvent('toast', {
+      detail: { type: 'success', msg: '진행 내역이 적용되었습니다.' }
+    }));
   };
 
   // 목표를 기반으로 실행계획 생성 후 적용
@@ -419,7 +457,7 @@ export default function AIAssistant({
           });
         }
         
-        onApplyToActionPlans?.(planText);
+        onApplyToNextWeekPlans?.(planText);
       }
 
     } catch (error) {
@@ -458,7 +496,7 @@ export default function AIAssistant({
       });
     }
     
-    onApplyToActionPlans?.(planText);
+    onApplyToNextWeekPlans?.(planText);
   };
 
   // 마일스톤 추출하여 적용
@@ -492,7 +530,7 @@ export default function AIAssistant({
       });
     }
     
-    onApplyToMilestones?.(milestonesText);
+    onApplyToAchievements?.(milestonesText);
   };
 
   return (
@@ -632,30 +670,90 @@ export default function AIAssistant({
           </button>
 
           {results.template && (
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '16px', 
-              backgroundColor: '#f8f9ff', 
+            <div style={{
+              marginTop: '20px',
+              padding: '16px',
+              backgroundColor: '#f8f9ff',
               borderRadius: '8px',
               border: '1px solid #e1e5f0'
             }}>
-              <h4 style={{ margin: '0 0 12px 0', color: '#4a5568' }}>생성된 템플릿</h4>
-              <div style={{ marginBottom: '12px' }}>
-                <strong>목표:</strong>
-                <p style={{ margin: '4px 0', color: '#666' }}>{results.template.goals}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <h4 style={{ margin: 0, color: '#4a5568' }}>생성된 템플릿</h4>
+                <button
+                  onClick={() => onTemplateGenerated && onTemplateGenerated(results.template)}
+                  className="btn secondary"
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '6px 12px',
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚀 다시 적용하기
+                </button>
               </div>
+
               <div style={{ marginBottom: '12px' }}>
-                <strong>예상 이슈:</strong>
-                <p style={{ margin: '4px 0', color: '#666' }}>{results.template.issues}</p>
+                <strong>📅 주간 목표:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.weeklyGoalsPeriod}
+                </p>
               </div>
+
               <div style={{ marginBottom: '12px' }}>
-                <strong>권장 진행률:</strong>
+                <strong>📝 진행 내역:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.progressDetails}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>🏆 주요 성과:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.achievements}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>✅ 완료된 업무:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.completedTasks}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>❌ 미완료 업무:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.incompleteTasks}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>⚠️ 예상 이슈:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem' }}>
+                  {results.template.issues}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>📋 다음주 계획:</strong>
+                <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem', whiteSpace: 'pre-line' }}>
+                  {results.template.nextWeekPlans}
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '12px' }}>
+                <strong>📈 권장 진행률:</strong>
                 <span style={{ color: '#667eea', fontWeight: '600' }}> {results.template.suggestedProgress}%</span>
               </div>
+
               {results.template.tips && (
                 <div>
-                  <strong>진행 팁:</strong>
-                  <p style={{ margin: '4px 0', color: '#666' }}>{results.template.tips}</p>
+                  <strong>💡 진행 팁:</strong>
+                  <p style={{ margin: '4px 0', color: '#666', fontSize: '0.9rem' }}>{results.template.tips}</p>
                 </div>
               )}
             </div>
@@ -897,36 +995,36 @@ export default function AIAssistant({
               <h5 style={{ margin: '0 0 8px 0', color: '#0c4a6e', fontSize: '0.9rem' }}>🚀 목표를 직접 적용하기</h5>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
                 <button
-                  onClick={() => handleApplyGoalsToField('short')}
+                  onClick={() => handleApplyGoalsToField('weeklyGoals')}
                   disabled={loading}
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#10b981', color: 'white' }}
                 >
-                  📋 단기목표에 적용
+                  📅 주간목표에 적용
                 </button>
                 <button
-                  onClick={() => handleApplyGoalsToField('long')}
+                  onClick={() => handleApplyGoalsToField('achievements')}
                   disabled={loading}
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#3b82f6', color: 'white' }}
                 >
-                  🎯 장기목표에 적용
+                  🏆 주요성과에 적용
                 </button>
                 <button
-                  onClick={() => handleApplyGoalsToField('milestones')}
+                  onClick={() => handleApplyGoalsToField('nextWeek')}
                   disabled={loading}
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#8b5cf6', color: 'white' }}
                 >
-                  🏃 마일스톤에 적용
+                  📋 다음주계획에 적용
                 </button>
                 <button
-                  onClick={() => handleGenerateActionPlanFromGoals()}
+                  onClick={() => handleGenerateProgressDetails()}
                   disabled={loading}
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#f59e0b', color: 'white' }}
                 >
-                  📅 실행계획 생성
+                  📝 진행내역 생성
                 </button>
               </div>
             </div>
@@ -1171,7 +1269,7 @@ export default function AIAssistant({
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#f59e0b', color: 'white' }}
                 >
-                  📅 실행계획에 적용
+                  📋 다음주계획에 적용
                 </button>
                 <button
                   onClick={() => handleExtractMilestones()}
@@ -1179,7 +1277,7 @@ export default function AIAssistant({
                   className="btn secondary"
                   style={{ fontSize: '0.8rem', padding: '6px 12px', background: '#8b5cf6', color: 'white' }}
                 >
-                  🏃 마일스톤 추출
+                  🏆 주요성과 추출
                 </button>
               </div>
             </div>
@@ -1262,12 +1360,12 @@ export default function AIAssistant({
             }}>
               <h5 style={{ margin: '0 0 8px 0', color: '#4a5568', fontSize: '0.9rem' }}>📋 내용 미리보기</h5>
               <div style={{ fontSize: '0.8rem', color: '#666' }}>
-                <div><strong>단기 목표:</strong> {currentGoals.shortTermGoals ? '설정됨 (영역)' : '미설정'}</div>
-                <div><strong>장기 목표:</strong> {currentGoals.longTermGoals ? '설정됨 (영역)' : '미설정'}</div>
-                <div><strong>실행 계획:</strong> {currentPlans.actionPlans ? '작성됨 (영역)' : '미작성'}</div>
-                <div><strong>마일스톤:</strong> {currentPlans.milestones ? '설정됨 (영역)' : '미설정'}</div>
+                <div><strong>주간 목표:</strong> {currentGoals.weeklyGoalsPeriod ? '설정됨 (영역)' : '미설정'}</div>
+                <div><strong>진행 내역:</strong> {currentPlans.progressDetails ? '작성됨 (영역)' : '미작성'}</div>
+                <div><strong>주요 성과:</strong> {currentPlans.achievements ? '작성됨 (영역)' : '미작성'}</div>
+                <div><strong>다음주 계획:</strong> {currentPlans.nextWeekPlans ? '설정됨 (영역)' : '미설정'}</div>
               </div>
-              {(!currentGoals.shortTermGoals && !currentGoals.longTermGoals && !currentPlans.actionPlans) && (
+              {(!currentGoals.weeklyGoalsPeriod && !currentPlans.progressDetails && !currentPlans.achievements && !currentPlans.nextWeekPlans) && (
                 <div style={{ 
                   marginTop: '8px', 
                   padding: '8px', 
