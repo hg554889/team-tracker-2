@@ -11,15 +11,19 @@ export default function ReportForm() {
   const [teamId, setTeamId] = useState("");
   const [weekOf, setWeekOf] = useState("");
   const [progress, setProgress] = useState(0);
-  const [shortTermGoals, setShortTermGoals] = useState("");
-  const [actionPlans, setActionPlans] = useState("");
-  const [milestones, setMilestones] = useState("");
+  const [weeklyGoalsPeriod, setWeeklyGoalsPeriod] = useState("");
+  const [progressDetails, setProgressDetails] = useState("");
+  const [achievements, setAchievements] = useState("");
+  const [completedTasks, setCompletedTasks] = useState("");
+  const [incompleteTasks, setIncompleteTasks] = useState("");
   const [issues, setIssues] = useState("");
+  const [nextWeekPlans, setNextWeekPlans] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [done, setDone] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const loc = useLocation();
   const nav = useNavigate();
+
 
   useEffect(() => {
     (async () => {
@@ -43,11 +47,17 @@ export default function ReportForm() {
   };
 
   const handleTemplateGenerated = (template) => {
-    if (template.shortTermGoals) setShortTermGoals(template.shortTermGoals);
-    if (template.actionPlans) setActionPlans(template.actionPlans);
-    if (template.milestones) setMilestones(template.milestones);
+    if (template.weeklyGoalsPeriod) setWeeklyGoalsPeriod(template.weeklyGoalsPeriod);
+    if (template.progressDetails) setProgressDetails(template.progressDetails);
+    if (template.achievements) setAchievements(template.achievements);
+    if (template.completedTasks) setCompletedTasks(template.completedTasks);
+    if (template.incompleteTasks) setIncompleteTasks(template.incompleteTasks);
     if (template.issues) setIssues(template.issues);
-    if (template.suggestedProgress) setProgress(template.suggestedProgress);
+    if (template.nextWeekPlans) setNextWeekPlans(template.nextWeekPlans);
+    if (template.suggestedProgress) {
+      const numValue = Number(template.suggestedProgress);
+      setProgress(isNaN(numValue) ? 0 : numValue);
+    }
     window.dispatchEvent(
       new CustomEvent("toast", {
         detail: {
@@ -60,7 +70,8 @@ export default function ReportForm() {
 
   const handleProgressPredicted = (prediction) => {
     if (prediction.predictedProgress) {
-      setProgress(prediction.predictedProgress);
+      const numValue = Number(prediction.predictedProgress);
+      setProgress(isNaN(numValue) ? 0 : numValue);
       window.dispatchEvent(
         new CustomEvent("toast", {
           detail: {
@@ -73,19 +84,19 @@ export default function ReportForm() {
   };
 
   const handleGoalsSuggested = (suggestions) => {
-    if (suggestions.shortTermGoals) {
-      let shortTermText = "";
-      suggestions.shortTermGoals.forEach((goal, index) => {
-        shortTermText += `${index + 1}. ${goal}\n`;
+    if (suggestions.weeklyGoalsPeriod) {
+      let goalsText = "";
+      suggestions.weeklyGoalsPeriod.forEach((goal, index) => {
+        goalsText += `${index + 1}. ${goal}\n`;
       });
-      setShortTermGoals(shortTermText);
+      setWeeklyGoalsPeriod(goalsText);
     }
-    if (suggestions.keyMilestones) {
-      let milestonesText = "";
-      suggestions.keyMilestones.forEach((milestone, index) => {
-        milestonesText += `${index + 1}. ${milestone}\n`;
+    if (suggestions.achievements) {
+      let achievementsText = "";
+      suggestions.achievements.forEach((achievement, index) => {
+        achievementsText += `${index + 1}. ${achievement}\n`;
       });
-      setMilestones(milestonesText);
+      setAchievements(achievementsText);
     }
     window.dispatchEvent(
       new CustomEvent("toast", {
@@ -97,50 +108,58 @@ export default function ReportForm() {
     );
   };
 
-  const handleActionPlanSuggested = (actionPlan) => {
-    if (actionPlan.timeline) {
-      let planText = "[실행 계획]\n";
-      actionPlan.timeline.forEach((step, index) => {
+  const handleNextWeekPlanSuggested = (planData) => {
+    if (planData.timeline) {
+      let planText = "[다음주 계획]\n";
+      planData.timeline.forEach((step, index) => {
         planText += `${index + 1}. ${step.task} (${step.duration}${
           step.assignee ? `, 담당: ${step.assignee}` : ""
         })\n`;
       });
-      if (actionPlan.checkpoints) {
+      if (planData.checkpoints) {
         planText += "\n[체크포인트]\n";
-        actionPlan.checkpoints.forEach((checkpoint) => {
+        planData.checkpoints.forEach((checkpoint) => {
           planText += `- ${checkpoint}\n`;
         });
       }
-      setActionPlans(planText);
+      setNextWeekPlans(planText);
     }
     window.dispatchEvent(
       new CustomEvent("toast", {
-        detail: { type: "info", msg: "AI 실행 계획이 적용되었습니다." },
+        detail: { type: "info", msg: "AI 다음주 계획이 적용되었습니다." },
       })
     );
   };
 
-  const handleApplyToShortTermGoals = (content) => {
-    setShortTermGoals(content);
+  const handleApplyToWeeklyGoalsPeriod = (content) => {
+    setWeeklyGoalsPeriod(content);
     window.dispatchEvent(
       new CustomEvent("toast", {
-        detail: { type: "success", msg: "단기 목표가 적용되었습니다." },
+        detail: { type: "success", msg: "주간 목표가 적용되었습니다." },
       })
     );
   };
-  const handleApplyToActionPlans = (content) => {
-    setActionPlans(content);
+  const handleApplyToProgressDetails = (content) => {
+    setProgressDetails(content);
     window.dispatchEvent(
       new CustomEvent("toast", {
-        detail: { type: "success", msg: "실행 계획이 적용되었습니다." },
+        detail: { type: "success", msg: "진행 내역이 적용되었습니다." },
       })
     );
   };
-  const handleApplyToMilestones = (content) => {
-    setMilestones(content);
+  const handleApplyToAchievements = (content) => {
+    setAchievements(content);
     window.dispatchEvent(
       new CustomEvent("toast", {
-        detail: { type: "success", msg: "마일스톤이 적용되었습니다." },
+        detail: { type: "success", msg: "주요 성과가 적용되었습니다." },
+      })
+    );
+  };
+  const handleApplyToNextWeekPlans = (content) => {
+    setNextWeekPlans(content);
+    window.dispatchEvent(
+      new CustomEvent("toast", {
+        detail: { type: "success", msg: "다음주 계획이 적용되었습니다." },
       })
     );
   };
@@ -153,11 +172,13 @@ export default function ReportForm() {
         weekOf: new Date().toISOString(),
         progress: Number(progress),
         // 서버 스키마에 맞춰 goals 필드에 '목표설정' 내용을 담습니다.
-        goals: shortTermGoals,
-        // 참고: 추가 필드들은 서버에서 무시될 수 있습니다.
-        actionPlans,
-        milestones,
+        goals: weeklyGoalsPeriod,
+        progressDetails,
+        achievements,
+        completedTasks,
+        incompleteTasks,
         issues,
+        nextWeekPlans,
         dueAt: dueAt ? new Date(dueAt).toISOString() : undefined,
       };
       await createOrUpdateReport(payload);
@@ -223,12 +244,13 @@ export default function ReportForm() {
             onTemplateGenerated={handleTemplateGenerated}
             onProgressPredicted={handleProgressPredicted}
             onGoalsSuggested={handleGoalsSuggested}
-            onActionPlanSuggested={handleActionPlanSuggested}
-            onApplyToShortTermGoals={handleApplyToShortTermGoals}
-            onApplyToActionPlans={handleApplyToActionPlans}
-            onApplyToMilestones={handleApplyToMilestones}
-            currentGoals={{ shortTermGoals }}
-            currentPlans={{ actionPlans, milestones }}
+            onNextWeekPlanSuggested={handleNextWeekPlanSuggested}
+            onApplyToWeeklyGoalsPeriod={handleApplyToWeeklyGoalsPeriod}
+            onApplyToProgressDetails={handleApplyToProgressDetails}
+            onApplyToAchievements={handleApplyToAchievements}
+            onApplyToNextWeekPlans={handleApplyToNextWeekPlans}
+            currentGoals={{ weeklyGoalsPeriod }}
+            currentPlans={{ progressDetails, achievements, nextWeekPlans }}
           />
         </div>
       )}
@@ -274,90 +296,139 @@ export default function ReportForm() {
           <h3>진행 상황</h3>
           <div className="form-group">
             <label>진행률(%) *</label>
-            <div className="progress-input-container">
+            <div
+              className="progress-input-container"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '1rem'
+              }}
+            >
               <input
                 className="form-input progress-input"
                 type="number"
                 min={0}
                 max={100}
                 value={progress}
-                onChange={(e) => setProgress(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const numValue = value === '' ? 0 : Number(value);
+                  if (isNaN(numValue)) setProgress(0);
+                  else if (numValue < 0) setProgress(0);
+                  else if (numValue > 100) setProgress(100);
+                  else setProgress(numValue);
+                }}
                 placeholder="0-100"
               />
-              <div className="progress-bar">
+              <div
+                style={{
+                  flex: 1,
+                  height: '20px',
+                  minHeight: '20px',
+                  background: '#e5e7eb',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  border: '2px solid #d1d5db',
+                  marginLeft: '8px',
+                  marginRight: '8px'
+                }}
+              >
                 <div
-                  className={`progress-fill ${
-                    progress >= 80 ? "high" : progress >= 50 ? "medium" : "low"
-                  }`}
-                  style={{ width: `${progress}%` }}
+                  style={{
+                    height: '100%',
+                    width: `${Math.max(0, Math.min(100, progress || 0))}%`,
+                    transition: 'all 0.3s ease',
+                    borderRadius: '8px',
+                    background: progress >= 80 ? '#10b981' :
+                               progress >= 50 ? '#f59e0b' :
+                               '#ef4444',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
                 />
               </div>
               <span
                 className={`progress-text ${
                   progress >= 80 ? "high" : progress >= 50 ? "medium" : "low"
                 }`}
+                style={{
+                  flex: '0 0 60px',
+                  textAlign: 'center',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  color: progress >= 80 ? '#10b981' :
+                         progress >= 50 ? '#f59e0b' :
+                         '#ef4444'
+                }}
               >
-                {progress}%
+                {progress || 0}%
               </span>
             </div>
           </div>
         </div>
 
-        <div className="goals-plans-container">
-          <div className="section-header">
-            <h3>목표 및 실행 계획</h3>
-            <p className="section-description">
-              목표를 명확히 설정하고 구체적인 실행 계획을 수립하세요
-            </p>
-          </div>
-
-          <div className="goals-grid">
-            <div className="form-section goals-section">
-              <h4>단기 목표 (1주)</h4>
-              <div className="form-group">
-                <label>이번 주 달성할 구체적 목표</label>
-                <textarea
-                  className="form-textarea short-goals"
-                  value={shortTermGoals}
-                  onChange={(e) => setShortTermGoals(e.target.value)}
-                  placeholder={`이번 주 달성할 구체적인 목표를 입력하세요\n예)\n• 로그인 API 개발 완료\n• 메인 페이지 UI 마크업 완성`}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-section plans-section">
-              <h4>실행 계획</h4>
-              <div className="form-group">
-                <label>목표 달성을 위한 구체적 실행 방안</label>
-                <textarea
-                  className="form-textarea action-plans"
-                  value={actionPlans}
-                  onChange={(e) => setActionPlans(e.target.value)}
-                  placeholder={`목표 달성을 위한 구체적인 실행 방법을 입력하세요\n예)\n1. 월요일: 요구사항 분석 및 정리\n2. 화요일: API 설계 및 개발 착수\n3. 수요일: 핵심 기능 코드 구현 및 테스트\n4. 금요일: UI 컴포넌트 개발`}
-                />
-              </div>
-            </div>
-
-            <div className="form-section milestones-section">
-              <h4>주요 마일스톤</h4>
-              <div className="form-group">
-                <label>중요한 중간 목표 및 검증 지점</label>
-                <textarea
-                  className="form-textarea milestones"
-                  value={milestones}
-                  onChange={(e) => setMilestones(e.target.value)}
-                  placeholder={`주요 마일스톤과 검증 기준을 작성하세요\n예)\n• 1주차: 기본 인증 로직 완성 (80%)\n• 2주차: UI/UX 시안 검토 완료 (90%)\n• 3주차: 통합 테스트 결과 (95%)\n• 4주차: 배포 및 모니터링 체계 구축 (100%)`}
-                />
-              </div>
+        <div className="report-sections-container">
+          <div className="form-section">
+            <h3>📅 주간 목표 및 기간</h3>
+            <div className="form-group">
+              <label>이번 주 목표와 수행 기간</label>
+              <textarea
+                className="form-textarea"
+                value={weeklyGoalsPeriod}
+                onChange={(e) => setWeeklyGoalsPeriod(e.target.value)}
+                placeholder={`이번 주 목표와 기간을 입력하세요\n예)\n• 목표: 사용자 인증 시스템 구축\n• 기간: 2024.01.15 ~ 2024.01.19\n• 담당자: 김개발`}
+                required
+              />
             </div>
           </div>
 
-          <div className="form-hint goals-hint">
-            힌트: 상단의 “AI 제안 보기” 버튼을 누르면 프로젝트 맥락에 맞는
-            템플릿을 불러옵니다.
+          <div className="form-section">
+            <h3>📝 진행 내역</h3>
+            <div className="form-group">
+              <label>이번 주 실제 진행한 작업 내용</label>
+              <textarea
+                className="form-textarea"
+                value={progressDetails}
+                onChange={(e) => setProgressDetails(e.target.value)}
+                placeholder={`이번 주 진행한 구체적인 작업을 입력하세요\n예)\n• 월요일: 요구사항 분석 및 설계 문서 작성\n• 화요일: 로그인 API 개발 시작\n• 수요일: JWT 토큰 인증 로직 구현`}
+              />
+            </div>
           </div>
-        </div>
+
+          <div className="form-section">
+            <h3>🏆 주요 성과</h3>
+            <div className="form-group">
+              <label>이번 주 달성한 주요 성과와 결과물</label>
+              <textarea
+                className="form-textarea"
+                value={achievements}
+                onChange={(e) => setAchievements(e.target.value)}
+                placeholder={`이번 주 달성한 성과를 입력하세요\n예)\n• 로그인/회원가입 API 완성\n• 사용자 인증 테스트 100% 통과\n• 보안 검증 완료`}
+              />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>✅ 완료/미완료 업무</h3>
+            <div className="form-group">
+              <label>완료된 업무</label>
+              <textarea
+                className="form-textarea"
+                value={completedTasks}
+                onChange={(e) => setCompletedTasks(e.target.value)}
+                placeholder={`완료된 업무 목록\n예)\n✅ 로그인 API 개발\n✅ 단위 테스트 작성\n✅ 코드 리뷰 완료`}
+              />
+            </div>
+            <div className="form-group">
+              <label>미완료 업무</label>
+              <textarea
+                className="form-textarea"
+                value={incompleteTasks}
+                onChange={(e) => setIncompleteTasks(e.target.value)}
+                placeholder={`미완료 업무 목록과 사유\n예)\n❌ 비밀번호 재설정 기능 (설계 변경으로 지연)\n❌ 소셜 로그인 연동 (외부 API 문제)`}
+              />
+            </div>
+          </div>
 
         <div className="form-section">
           <h3>이슈 및 고민사항</h3>
@@ -372,16 +443,30 @@ export default function ReportForm() {
           </div>
         </div>
 
-        <div className="form-section">
-          <h3>마감 일정</h3>
-          <div className="form-group">
-            <label>마감일</label>
-            <input
-              className="form-input"
-              type="datetime-local"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-            />
+          <div className="form-section">
+            <h3>📋 다음주 계획</h3>
+            <div className="form-group">
+              <label>다음 주 진행할 업무와 계획</label>
+              <textarea
+                className="form-textarea"
+                value={nextWeekPlans}
+                onChange={(e) => setNextWeekPlans(e.target.value)}
+                placeholder={`다음주 계획을 입력하세요\n예)\n• 소셜 로그인 기능 개발\n• 사용자 프로필 관리 기능\n• 통합 테스트 및 배포 준비`}
+              />
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>⏰ 마감 일정</h3>
+            <div className="form-group">
+              <label>마감일</label>
+              <input
+                className="form-input"
+                type="datetime-local"
+                value={dueAt}
+                onChange={(e) => setDueAt(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -398,7 +483,7 @@ export default function ReportForm() {
           <button
             className="btn-submit"
             disabled={
-              !teamId || (!shortTermGoals.trim() && !actionPlans.trim())
+              !teamId || !weeklyGoalsPeriod.trim()
             }
           >
             저장

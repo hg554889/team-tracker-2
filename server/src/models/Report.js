@@ -11,12 +11,22 @@ const ReportSchema = new Schema({
   clubId: { type: String, required: true, index: true },
   weekOf: { type: Date, required: true },
   progress: { type: Number, min: 0, max: 100, default: 0 },
-  goals: { type: String, default: '' }, // 기존 호환성을 위해 유지
+
+  // 새로운 보고서 형식 필드들
+  goals: { type: String, default: '' }, // 주간 목표 및 기간
+  progressDetails: { type: String, default: '' }, // 진행 내역
+  achievements: { type: String, default: '' }, // 주요 성과
+  completedTasks: { type: String, default: '' }, // 완료된 업무
+  incompleteTasks: { type: String, default: '' }, // 미완료 업무
+  nextWeekPlans: { type: String, default: '' }, // 다음주 계획
+  issues: { type: String, default: '' }, // 이슈 및 고민사항
+
+  // 하위 호환성을 위한 기존 필드들
   shortTermGoals: { type: String, default: '' },
   longTermGoals: { type: String, default: '' },
   actionPlans: { type: String, default: '' },
   milestones: { type: String, default: '' },
-  issues: { type: String, default: '' },
+
   dueAt: { type: Date },
   title: { type: String, default: '' },
   comments: { type: [CommentSchema], default: [] }

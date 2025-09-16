@@ -13,16 +13,22 @@ export async function generateReportTemplate(teamType, projectCategory, projectD
 프로젝트 카테고리: ${projectCategory}
 프로젝트 설명: ${projectDescription}
 
-위 정보를 바탕으로 주간 보고서 템플릿을 생성해주세요. 다음 형식으로 JSON 응답해주세요:
+위 정보를 바탕으로 주간 보고서 템플릿을 생성해주세요. 새로운 보고서 형식에 맞는 모든 필드를 포함하여 JSON 형식으로 응답해주세요:
 
 {
-  "goals": "이번 주 목표 (구체적이고 측정 가능한)",
-  "issues": "예상되는 이슈나 고려사항",
-  "suggestedProgress": 80,
-  "tips": "해당 프로젝트 유형에 맞는 진행 팁"
+  "weeklyGoalsPeriod": "📅 주간 목표 및 기간\\n• 구체적인 목표 1 (기간: YYYY.MM.DD ~ YYYY.MM.DD)\\n• 구체적인 목표 2 (담당: 담당자명)\\n• 달성 가능한 목표 3",
+  "progressDetails": "📝 진행 내역\\n• 월요일: 구체적인 작업 내용\\n• 화요일: 진행된 작업\\n• 수요일: 완료된 업무\\n• 목요일: 검토 및 테스트\\n• 금요일: 정리 및 문서화",
+  "achievements": "🏆 주요 성과\\n• 핵심 기능 구현 완료\\n• 성과 지표 달성\\n• 품질 기준 충족",
+  "completedTasks": "✅ 완료된 업무\\n✅ 완료 업무 1\\n✅ 완료 업무 2\\n✅ 완료 업무 3",
+  "incompleteTasks": "❌ 미완료 업무\\n❌ 미완료 업무 1 (사유: 구체적인 이유)\\n❌ 미완료 업무 2 (대응방안: 해결 계획)",
+  "issues": "⚠️ 이슈 및 고민사항\\n• 기술적 이슈나 문제점\\n• 리소스 관련 고민\\n• 일정상의 제약사항",
+  "nextWeekPlans": "📋 다음주 계획\\n• 우선순위 1: 구체적인 계획\\n• 우선순위 2: 진행할 업무\\n• 우선순위 3: 목표 달성 방안",
+  "suggestedProgress": 75,
+  "tips": "💡 ${teamType} ${projectCategory} 프로젝트 진행 팁"
 }
 
-응답은 한국어로, 실용적이고 구체적으로 작성해주세요.
+각 필드는 해당 팀 유형과 프로젝트 카테고리에 맞는 실용적이고 구체적인 내용으로 작성해주세요.
+모든 내용은 한국어로, 실제 업무에 바로 활용할 수 있도록 구체적으로 작성해주세요.
 `;
 
     const result = await model.generateContent(prompt);
@@ -37,12 +43,17 @@ export async function generateReportTemplate(teamType, projectCategory, projectD
       }
       throw new Error('No JSON found in response');
     } catch (parseError) {
-      // JSON 파싱 실패 시 기본 템플릿 반환
+      // JSON 파싱 실패 시 새로운 형식의 기본 템플릿 반환
       return {
-        goals: text.substring(0, 200) + '...',
-        issues: '프로젝트 진행 시 발생할 수 있는 리스크를 미리 식별하고 대응책을 준비해주세요.',
+        weeklyGoalsPeriod: `📅 ${teamType} - ${projectCategory} 주간 목표\n• 핵심 기능 개발 완료\n• 품질 기준 달성\n• 팀 협업 효율성 향상`,
+        progressDetails: `📝 이번 주 진행 내역\n• 월요일: 프로젝트 계획 및 설계 검토\n• 화요일-수요일: 핵심 기능 개발 진행\n• 목요일: 테스트 및 품질 검증\n• 금요일: 문서화 및 주간 정리`,
+        achievements: `🏆 주요 성과\n• 계획된 기능 구현 완료\n• 코드 품질 기준 달성\n• 팀워크 향상 및 소통 개선`,
+        completedTasks: `✅ 완료된 업무\n✅ 기본 구조 설계 완료\n✅ 핵심 로직 구현\n✅ 단위 테스트 작성`,
+        incompleteTasks: `❌ 미완료 업무\n❌ 추가 기능 개발 (다음 주 우선 진행)\n❌ 통합 테스트 (리소스 확보 후 진행)`,
+        issues: `⚠️ 이슈 및 고민사항\n• 프로젝트 진행 시 발생할 수 있는 기술적 리스크\n• 일정 지연 가능성에 대한 대응 방안 필요\n• 리소스 부족 시 우선순위 조정 검토`,
+        nextWeekPlans: `📋 다음주 계획\n• 미완료 업무 우선 완료\n• 추가 기능 개발 착수\n• 중간 점검 및 품질 검토`,
         suggestedProgress: 75,
-        tips: '정기적인 진행상황 점검과 팀원 간 소통을 통해 프로젝트를 성공적으로 완수하세요.'
+        tips: `💡 ${teamType} ${projectCategory} 프로젝트 진행 팁\n정기적인 진행상황 점검과 팀원 간 원활한 소통을 통해 프로젝트를 성공적으로 완수하세요.`
       };
     }
   } catch (error) {

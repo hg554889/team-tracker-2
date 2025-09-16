@@ -17,15 +17,20 @@ const createBody = z.object({
   teamId: z.string().min(1),
   weekOf: dateLike,
   progress: z.coerce.number().min(0).max(100),
-  // 단일 goals는 하위 호환용으로 유지
-  goals: z.string().default(''),
-  // 주간 보고용 세부 필드
+  // 새로운 보고서 형식
+  goals: z.string().default(''), // 주간 목표 및 기간 (하위 호환)
+  progressDetails: z.string().default(''), // 진행 내역
+  achievements: z.string().default(''), // 주요 성과
+  completedTasks: z.string().default(''), // 완료 업무
+  incompleteTasks: z.string().default(''), // 미완료 업무
+  issues: z.string().default(''), // 이슈 및 고민사항
+  nextWeekPlans: z.string().default(''), // 다음주 계획
+  dueAt: dateLike.optional(),
+  attachments: z.array(z.any()).optional(),
+  // 하위 호환성을 위한 기존 필드들
   shortTermGoals: z.string().default(''),
   actionPlans: z.string().default(''),
   milestones: z.string().default(''),
-  issues: z.string().default(''),
-  dueAt: dateLike.optional(),
-  attachments: z.array(z.any()).optional(),
 });
 
 function toDateOrNull(v){ if(!v) return null; const d=new Date(v); return Number.isNaN(d.getTime())?null:d; }
@@ -35,7 +40,7 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
   try {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ error:'ValidationError', details:parsed.error.flatten() });
-    const { teamId, weekOf, progress, goals, shortTermGoals, actionPlans, milestones, issues, dueAt, attachments } = parsed.data;
+    const { teamId, weekOf, progress, goals, progressDetails, achievements, completedTasks, incompleteTasks, issues, nextWeekPlans, dueAt, attachments, shortTermGoals, actionPlans, milestones } = parsed.data;
 
     const team = await Team.findById(teamId);
     if (!team) return res.status(404).json({ error: 'TeamNotFound' });
@@ -65,11 +70,17 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
       clubId: team.clubId,
       progress,
       goals,
+      progressDetails,
+      achievements,
+      completedTasks,
+      incompleteTasks,
+      issues,
+      nextWeekPlans,
+      dueAt: dueDate || undefined,
+      // 하위 호환성을 위한 기존 필드들
       shortTermGoals,
       actionPlans,
       milestones,
-      issues,
-      dueAt: dueDate || undefined,
       ...(attachments && { attachments })
     });
 
@@ -256,10 +267,16 @@ router.put('/:id', requireAuth, async (req, res, next) => {
     const up = {};
     if (req.body.progress !== undefined) up.progress = Number(req.body.progress);
     if (req.body.goals !== undefined) up.goals = req.body.goals;
+    if (req.body.progressDetails !== undefined) up.progressDetails = req.body.progressDetails;
+    if (req.body.achievements !== undefined) up.achievements = req.body.achievements;
+    if (req.body.completedTasks !== undefined) up.completedTasks = req.body.completedTasks;
+    if (req.body.incompleteTasks !== undefined) up.incompleteTasks = req.body.incompleteTasks;
+    if (req.body.issues !== undefined) up.issues = req.body.issues;
+    if (req.body.nextWeekPlans !== undefined) up.nextWeekPlans = req.body.nextWeekPlans;
+    // 하위 호환성을 위한 기존 필드들
     if (req.body.shortTermGoals !== undefined) up.shortTermGoals = req.body.shortTermGoals;
     if (req.body.actionPlans !== undefined) up.actionPlans = req.body.actionPlans;
     if (req.body.milestones !== undefined) up.milestones = req.body.milestones;
-    if (req.body.issues !== undefined) up.issues = req.body.issues;
     if (req.body.dueAt) up.dueAt = new Date(req.body.dueAt);
 
     const updated = await Report.findByIdAndUpdate(req.params.id, up, { new: true });
