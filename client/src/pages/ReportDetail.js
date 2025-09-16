@@ -333,7 +333,12 @@ export default function ReportDetail() {
                     min={0}
                     max={100}
                     value={progress}
-                    onChange={(e) => setProgress(e.target.value)}
+                    onChange={(e) => {
+                      const value = Number(e.target.value);
+                      if (value < 0) setProgress(0);
+                      else if (value > 100) setProgress(100);
+                      else setProgress(value);
+                    }}
                   />
                   <div className="progress-bar">
                     <div

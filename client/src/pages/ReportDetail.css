@@ -230,7 +230,20 @@
 .progress-bar-large {
   flex: 1;
   height: 16px;
-  background: #f1f5f9;
+  background: linear-gradient(45deg,
+    #f1f5f9 25%,
+    transparent 25%,
+    transparent 75%,
+    #f1f5f9 75%,
+    #f1f5f9),
+    linear-gradient(45deg,
+    #f1f5f9 25%,
+    #e2e8f0 25%,
+    #e2e8f0 75%,
+    #f1f5f9 75%,
+    #f1f5f9);
+  background-size: 8px 8px;
+  background-position: 0 0, 4px 4px;
   border-radius: 8px;
   overflow: hidden;
   position: relative;

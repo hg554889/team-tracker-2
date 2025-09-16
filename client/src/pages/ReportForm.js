@@ -313,7 +313,10 @@ export default function ReportForm() {
                 onChange={(e) => {
                   const value = e.target.value;
                   const numValue = value === '' ? 0 : Number(value);
-                  setProgress(isNaN(numValue) ? 0 : numValue);
+                  if (isNaN(numValue)) setProgress(0);
+                  else if (numValue < 0) setProgress(0);
+                  else if (numValue > 100) setProgress(100);
+                  else setProgress(numValue);
                 }}
                 placeholder="0-100"
               />
