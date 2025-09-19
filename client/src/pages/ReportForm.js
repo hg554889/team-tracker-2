@@ -24,7 +24,6 @@ export default function ReportForm() {
   const loc = useLocation();
   const nav = useNavigate();
 
-
   useEffect(() => {
     (async () => {
       const { data } = await listTeams({ scope: "mine" });
@@ -47,7 +46,8 @@ export default function ReportForm() {
   };
 
   const handleTemplateGenerated = (template) => {
-    if (template.weeklyGoalsPeriod) setWeeklyGoalsPeriod(template.weeklyGoalsPeriod);
+    if (template.weeklyGoalsPeriod)
+      setWeeklyGoalsPeriod(template.weeklyGoalsPeriod);
     if (template.progressDetails) setProgressDetails(template.progressDetails);
     if (template.achievements) setAchievements(template.achievements);
     if (template.completedTasks) setCompletedTasks(template.completedTasks);
@@ -299,9 +299,9 @@ export default function ReportForm() {
             <div
               className="progress-input-container"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem'
+                display: "flex",
+                alignItems: "center",
+                gap: "1rem",
               }}
             >
               <input
@@ -312,7 +312,7 @@ export default function ReportForm() {
                 value={progress}
                 onChange={(e) => {
                   const value = e.target.value;
-                  const numValue = value === '' ? 0 : Number(value);
+                  const numValue = value === "" ? 0 : Number(value);
                   if (isNaN(numValue)) setProgress(0);
                   else if (numValue < 0) setProgress(0);
                   else if (numValue > 100) setProgress(100);
@@ -323,27 +323,30 @@ export default function ReportForm() {
               <div
                 style={{
                   flex: 1,
-                  height: '20px',
-                  minHeight: '20px',
-                  background: '#e5e7eb',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  border: '2px solid #d1d5db',
-                  marginLeft: '8px',
-                  marginRight: '8px'
+                  height: "20px",
+                  minHeight: "20px",
+                  background: "#e5e7eb",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  position: "relative",
+                  border: "2px solid #d1d5db",
+                  marginLeft: "8px",
+                  marginRight: "8px",
                 }}
               >
                 <div
                   style={{
-                    height: '100%',
+                    height: "100%",
                     width: `${Math.max(0, Math.min(100, progress || 0))}%`,
-                    transition: 'all 0.3s ease',
-                    borderRadius: '8px',
-                    background: progress >= 80 ? '#10b981' :
-                               progress >= 50 ? '#f59e0b' :
-                               '#ef4444',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    transition: "all 0.3s ease",
+                    borderRadius: "8px",
+                    background:
+                      progress >= 80
+                        ? "#10b981"
+                        : progress >= 50
+                        ? "#f59e0b"
+                        : "#ef4444",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
                   }}
                 />
               </div>
@@ -352,13 +355,16 @@ export default function ReportForm() {
                   progress >= 80 ? "high" : progress >= 50 ? "medium" : "low"
                 }`}
                 style={{
-                  flex: '0 0 60px',
-                  textAlign: 'center',
-                  fontWeight: '700',
-                  fontSize: '1rem',
-                  color: progress >= 80 ? '#10b981' :
-                         progress >= 50 ? '#f59e0b' :
-                         '#ef4444'
+                  flex: "0 0 60px",
+                  textAlign: "center",
+                  fontWeight: "700",
+                  fontSize: "1rem",
+                  color:
+                    progress >= 80
+                      ? "#10b981"
+                      : progress >= 50
+                      ? "#f59e0b"
+                      : "#ef4444",
                 }}
               >
                 {progress || 0}%
@@ -430,18 +436,18 @@ export default function ReportForm() {
             </div>
           </div>
 
-        <div className="form-section">
-          <h3>이슈 및 고민사항</h3>
-          <div className="form-group">
-            <label>이슈/요청 사항</label>
-            <textarea
-              className="form-textarea issues-textarea"
-              value={issues}
-              onChange={(e) => setIssues(e.target.value)}
-              placeholder={`현재 겪고 있는 이슈와 요청 사항을 입력하세요...\n예)\n• API 응답 속도 개선 필요\n• 레거시 코드 리팩터링 필요`}
-            />
+          <div className="form-section">
+            <h3>이슈 및 고민사항</h3>
+            <div className="form-group">
+              <label>이슈/요청 사항</label>
+              <textarea
+                className="form-textarea issues-textarea"
+                value={issues}
+                onChange={(e) => setIssues(e.target.value)}
+                placeholder={`현재 겪고 있는 이슈와 요청 사항을 입력하세요...\n예)\n• API 응답 속도 개선 필요\n• 레거시 코드 리팩터링 필요`}
+              />
+            </div>
           </div>
-        </div>
 
           <div className="form-section">
             <h3>📋 다음주 계획</h3>
@@ -482,9 +488,7 @@ export default function ReportForm() {
           </button>
           <button
             className="btn-submit"
-            disabled={
-              !teamId || !weeklyGoalsPeriod.trim()
-            }
+            disabled={!teamId || !weeklyGoalsPeriod.trim()}
           >
             저장
           </button>

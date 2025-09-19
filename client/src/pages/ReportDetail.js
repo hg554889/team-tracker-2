@@ -238,7 +238,9 @@ export default function ReportDetail() {
                   {goals ? (
                     <pre className="content-text">{goals}</pre>
                   ) : (
-                    <div className="empty-content">설정된 주간 목표가 없습니다.</div>
+                    <div className="empty-content">
+                      설정된 주간 목표가 없습니다.
+                    </div>
                   )}
                 </div>
               </div>
@@ -247,9 +249,13 @@ export default function ReportDetail() {
                 <h3>📝 진행 내역</h3>
                 <div className="content-display">
                   {progressDetails || report?.actionPlans ? (
-                    <pre className="content-text">{progressDetails || report?.actionPlans}</pre>
+                    <pre className="content-text">
+                      {progressDetails || report?.actionPlans}
+                    </pre>
                   ) : (
-                    <div className="empty-content">등록된 진행 내역이 없습니다.</div>
+                    <div className="empty-content">
+                      등록된 진행 내역이 없습니다.
+                    </div>
                   )}
                 </div>
               </div>
@@ -258,9 +264,13 @@ export default function ReportDetail() {
                 <h3>🏆 주요 성과</h3>
                 <div className="content-display">
                   {achievements || report?.milestones ? (
-                    <pre className="content-text">{achievements || report?.milestones}</pre>
+                    <pre className="content-text">
+                      {achievements || report?.milestones}
+                    </pre>
                   ) : (
-                    <div className="empty-content">등록된 주요 성과가 없습니다.</div>
+                    <div className="empty-content">
+                      등록된 주요 성과가 없습니다.
+                    </div>
                   )}
                 </div>
               </div>
