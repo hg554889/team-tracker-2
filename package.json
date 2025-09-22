@@ -1,0 +1,30 @@
+{
+  "name": "team-tracker-ver2",
+  "version": "1.0.0",
+  "description": "협업 팀 관리와 보고서 작성/열람을 지원하는 웹 애플리케이션입니다.  \r 관리자(Admin)와 리더(Leader) 역할 기반의 권한 제어를 통해 효율적인 팀 운영과 프로젝트 진행 상황 공유를 할 수 있습니다.",
+  "main": "index.js",
+  "scripts": {
+    "start:client": "cd client && npm start",
+    "start:server": "cd server && npm start",
+    "dev": "concurrently \"npm:start:client\" \"npm:start:server\"",
+    "test:e2e": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hg554889/team-tracker-2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hg554889/team-tracker-2/issues"
+  },
+  "homepage": "https://github.com/hg554889/team-tracker-2#readme",
+  "devDependencies": {
+    "@playwright/mcp": "^0.0.39",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.5.2",
+    "concurrently": "^9.2.1"
+  }
+}
