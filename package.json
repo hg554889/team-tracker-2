@@ -7,7 +7,17 @@
     "start:client": "cd client && npm start",
     "start:server": "cd server && npm start",
     "dev": "concurrently \"npm:start:client\" \"npm:start:server\"",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:auth": "playwright test qa-test/auth/",
+    "test:teams": "playwright test qa-test/teams/",
+    "test:reports": "playwright test qa-test/reports/",
+    "test:admin": "playwright test qa-test/admin/",
+    "test:smoke": "playwright test --grep '@smoke'",
+    "test:generate": "node scripts/generate-tests.js",
+    "scenario:validate": "node scripts/validate-scenarios.js",
+    "docs:scenarios": "node scripts/generate-scenario-docs.js"
   },
   "repository": {
     "type": "git",

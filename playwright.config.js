@@ -72,15 +72,6 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
+  // webServer 비활성화 - 수동으로 서버 실행 필요
+  // 사용법: npm run dev를 별도로 실행한 후 npm run test:e2e 실행
 });
