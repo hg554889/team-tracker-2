@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { listUsers, adminUpdateUser } from "../api/users";
 import { useAuth } from "../contexts/AuthContext";
 import { useClub } from "../contexts/ClubContext";
@@ -12,13 +12,23 @@ export default function ExecutiveUsers() {
   const { getClubDisplayName, currentClub } = useClub();
   const [users, setUsers] = useState([]);
   const [q, setQ] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [activeTab, setActiveTab] = useState("users");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // 디바운싱 효과: q가 변경되고 500ms 후에 debouncedQ 업데이트
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQ(q);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [q]);
+
   useEffect(() => {
     loadUsers();
-  }, [q, user?.clubId]);
+  }, [debouncedQ, user?.clubId]);
 
   const loadUsers = async () => {
     if (!user?.clubId) {
@@ -30,7 +40,7 @@ export default function ExecutiveUsers() {
     setLoading(true);
     try {
       const params = {};
-      if (q) params.q = q;
+      if (debouncedQ) params.q = debouncedQ;
 
       // EXECUTIVE는 항상 본인의 clubId 사용
       if (user?.clubId) {
@@ -166,7 +176,7 @@ export default function ExecutiveUsers() {
                       padding: "20px",
                     }}
                   >
-                    {q ? "검색 결과가 없습니다." : "구성원이 없습니다."}
+                    {debouncedQ ? "검색 결과가 없습니다." : "구성원이 없습니다."}
                   </td>
                 </tr>
               ) : (
