@@ -298,6 +298,28 @@ router.get('/summary', requireAuth, requireClubAccess, async (req, res, next) =>
         additionalStats.teamIssues = formattedIssues;
       }
 
+      // MEMBER용 일별 활동 데이터 추가
+      if (role === Roles.MEMBER) {
+        // 최근 7일간 일별 보고서 제출 수
+        const sevenDaysAgo = new Date(Date.now() - 7*24*3600*1000);
+        const dailyActivity = await Report.aggregate([
+          {
+            $match: {
+              author: meId,
+              createdAt: { $gte: sevenDaysAgo }
+            }
+          },
+          {
+            $group: {
+              _id: { $dayOfWeek: '$createdAt' }, // 1=일요일, 2=월요일, 3=화요일...
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+
+        additionalStats.dailyActivity = dailyActivity;
+      }
+
       // 개인 알림
       if (overdueReports > 0) {
         notifications.push({

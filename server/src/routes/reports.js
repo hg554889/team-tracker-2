@@ -77,6 +77,7 @@ router.post('/', requireAuth, requireClubAccess, async (req, res, next) => {
       issues,
       nextWeekPlans,
       dueAt: dueDate || undefined,
+      submittedAt: new Date(), // 제출 시간 기록
       // 하위 호환성을 위한 기존 필드들
       shortTermGoals,
       actionPlans,
