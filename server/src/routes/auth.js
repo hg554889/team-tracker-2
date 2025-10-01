@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { User } from '../models/User.js';
+import { User, BCRYPT_MAX_BYTES } from '../models/User.js';
 import { signJwt } from '../utils/jwt.js';
 import { validate } from '../middleware/validate.js';
 import { signupSchema, loginSchema } from '../validators/auth.js';
@@ -7,11 +7,19 @@ import { loginLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
-// 회원가입 시
+const isPasswordWithinLimit = (value) =>
+  typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= BCRYPT_MAX_BYTES;
+
+// Signup
 router.post('/signup', validate(signupSchema), async (req, res, next) => {
   try {
     const { email, username, password, studentId, clubId } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
+
+    if (!isPasswordWithinLimit(password)) {
+      return res.status(422).json({ error: 'InvalidPasswordLength' });
+    }
+
     const exists = await User.findOne({ email: normalizedEmail });
     if (exists) return res.status(409).json({ error: 'EmailInUse' });
     
@@ -29,7 +37,6 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
       approvalStatus: 'pending'
     });
     
-    // ✅ clubId 포함
     const token = signJwt({ 
       id: user.id, 
       role: user.role, 
@@ -52,17 +59,26 @@ router.post('/signup', validate(signupSchema), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// 로그인 시
+// Login
 router.post('/login', loginLimiter, validate(loginSchema), async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
+
+    if (!isPasswordWithinLimit(password)) {
+      return res.status(401).json({ error: 'InvalidCredentials' });
+    }
+
     const user = await User.findOne({ email: normalizedEmail });
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+      return res.status(401).json({ error: 'InvalidCredentials' });
+    }
+
+    const passwordMatches = await user.comparePassword(password);
+    if (!passwordMatches) {
       return res.status(401).json({ error: 'InvalidCredentials' });
     }
     
-    // ✅ clubId 포함
     const token = signJwt({ 
       id: user.id, 
       role: user.role, 
