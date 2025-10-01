@@ -1,40 +1,46 @@
-import { Schema, model } from 'mongoose';
-import bcrypt from 'bcryptjs';
-import { Roles } from '../utils/roles.js';
+import { Schema, model } from "mongoose";
+import bcrypt from "bcryptjs";
+import { Roles } from "../utils/roles.js";
 
 export const BCRYPT_MAX_BYTES = 72;
 
-const UserSchema = new Schema({
-  email: { type: String, required: true, unique: true, index: true },
-  username: { type: String, required: true },
-  password: {
-    type: String,
-    required: true,
-    validate: {
-      validator(value) {
-        return typeof value === 'string' && Buffer.byteLength(value, 'utf8') <= BCRYPT_MAX_BYTES;
+const UserSchema = new Schema(
+  {
+    email: { type: String, required: true, unique: true, index: true },
+    username: { type: String, required: true },
+    password: {
+      type: String,
+      required: true,
+      validate: {
+        validator(value) {
+          return (
+            typeof value === "string" &&
+            Buffer.byteLength(value, "utf8") <= BCRYPT_MAX_BYTES
+          );
+        },
+        message: `비밀번호는 최대 ${BCRYPT_MAX_BYTES} 바이트이어야 합니다.`,
       },
-      message: `Password must be at most ${BCRYPT_MAX_BYTES} bytes`
-    }
+    },
+    studentId: { type: String, required: false, index: true }, // 학번 중복 검사 위한 인덱스 추가
+    role: { type: String, enum: Object.values(Roles), default: Roles.MEMBER },
+    clubId: { type: String, index: true },
+    isApproved: { type: Boolean, default: false },
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    approvedAt: { type: Date },
   },
-  studentId: { type: String, required: false, index: true }, // 학번 중복 검사 위한 인덱스 추가
-  role: { type: String, enum: Object.values(Roles), default: Roles.MEMBER },
-  clubId: { type: String, index: true },
-  isApproved: { type: Boolean, default: false },
-  approvalStatus: {
-    type: String,
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
-  },
-  approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-  approvedAt: { type: Date }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
 
-  if (typeof this.password !== 'string') {
-    return next(new TypeError('Password must be a string'));
+  if (typeof this.password !== "string") {
+    return next(new TypeError("비밀번호는 문자열이어야 합니다."));
   }
 
   try {
@@ -46,25 +52,25 @@ UserSchema.pre('save', async function(next) {
   }
 });
 
-UserSchema.methods.comparePassword = async function(candidate) {
-  if (typeof candidate !== 'string') {
+UserSchema.methods.comparePassword = async function (candidate) {
+  if (typeof candidate !== "string") {
     return false;
   }
 
-  if (Buffer.byteLength(candidate, 'utf8') > BCRYPT_MAX_BYTES) {
+  if (Buffer.byteLength(candidate, "utf8") > BCRYPT_MAX_BYTES) {
     return false;
   }
 
   try {
-    if (typeof this.password !== 'string') {
+    if (typeof this.password !== "string") {
       return false;
     }
 
     return await bcrypt.compare(candidate, this.password);
   } catch (error) {
-    console.error('bcrypt comparison error:', error);
+    console.error("bcrypt 비교 에러:", error);
     return false;
   }
 };
 
-export const User = model('User', UserSchema);
+export const User = model("User", UserSchema);
