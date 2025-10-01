@@ -1,13 +1,45 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+const DEFAULT_MODEL_NAME = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash-lite';
+const DEV_KEY_OVERRIDE_FLAG = 'ALLOW_GEMINI_KEY_IN_DEV';
+
+let cachedModel;
+
+function resolveApiKey() {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured');
+  }
+
+  if (process.env.NODE_ENV !== 'production' && process.env[DEV_KEY_OVERRIDE_FLAG] !== 'true') {
+    throw new Error('GEMINI_API_KEY usage is disabled outside production. Set ALLOW_GEMINI_KEY_IN_DEV=true to override.');
+  }
+
+  return apiKey;
+}
+
+function getModel() {
+  if (cachedModel) {
+    return cachedModel;
+  }
+
+  const genAI = new GoogleGenerativeAI(resolveApiKey());
+  cachedModel = genAI.getGenerativeModel({ model: DEFAULT_MODEL_NAME });
+  return cachedModel;
+}
+
+function logAIError(context, error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`[AI:${context}]`, message);
+}
 
 /**
  * 팀 유형과 프로젝트 특성에 맞는 보고서 템플릿 생성
  */
 export async function generateReportTemplate(teamType, projectCategory, projectDescription) {
   try {
+    const model = getModel();
     const prompt = `
 팀 유형: ${teamType}
 프로젝트 카테고리: ${projectCategory}
@@ -57,7 +89,7 @@ export async function generateReportTemplate(teamType, projectCategory, projectD
       };
     }
   } catch (error) {
-    console.error('AI template generation error:', error);
+    logAIError('template generation', error);
     throw new Error('템플릿 생성 중 오류가 발생했습니다.');
   }
 }
@@ -69,6 +101,8 @@ export async function predictNextWeekProgress(historicalData, currentProgress, c
   try {
     const progressHistory = historicalData.map(d => d.progress).join(', ');
     const trend = calculateTrend(historicalData);
+    
+    const model = getModel();
     
     const prompt = `
 과거 진행률 히스토리: [${progressHistory}]%
@@ -110,7 +144,7 @@ export async function predictNextWeekProgress(historicalData, currentProgress, c
       };
     }
   } catch (error) {
-    console.error('AI progress prediction error:', error);
+    logAIError('progress prediction', error);
     throw new Error('진행률 예측 중 오류가 발생했습니다.');
   }
 }
@@ -120,6 +154,7 @@ export async function predictNextWeekProgress(historicalData, currentProgress, c
  */
 export async function suggestRealisticGoals(teamData, projectData, currentProgress, timeRemaining, teamSize) {
   try {
+    const model = getModel();
     const prompt = `
 팀 정보:
 - 팀 크기: ${teamSize}명
@@ -166,7 +201,7 @@ SMART 원칙(구체적, 측정가능, 달성가능, 관련성, 시간제한)을 
       };
     }
   } catch (error) {
-    console.error('AI goal suggestion error:', error);
+    logAIError('goal suggestion', error);
     throw new Error('목표 제안 중 오류가 발생했습니다.');
   }
 }
