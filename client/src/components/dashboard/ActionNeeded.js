@@ -331,7 +331,7 @@ export default function ActionNeeded({ summary }) {
                 cursor: 'pointer',
                 fontWeight: '500'
               }}
-              onClick={() => navigate('/notifications')}>
+              onClick={() => navigate('/notification-center')}>
                 모든 알림 보기 →
               </button>
             </div>

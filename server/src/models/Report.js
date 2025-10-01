@@ -28,6 +28,7 @@ const ReportSchema = new Schema({
   milestones: { type: String, default: '' },
 
   dueAt: { type: Date },
+  submittedAt: { type: Date }, // 보고서 제출 시간 (실제 제출된 시각)
   title: { type: String, default: '' },
   comments: { type: [CommentSchema], default: [] }
 }, { timestamps: true });

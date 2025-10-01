@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function RecentActivityFeed({ summary, user }) {
   const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = React.useState('전체');
 
   // 실제 데이터에서 최근 활동 생성
   const generateActivitiesFromSummary = (summary) => {
@@ -139,7 +140,19 @@ export default function RecentActivityFeed({ summary, user }) {
   };
 
   // 실제 데이터에서 활동 생성
-  const activities = generateActivitiesFromSummary(summary);
+  const allActivities = generateActivitiesFromSummary(summary);
+
+  // 필터링 로직
+  const filterActivities = (activities) => {
+    if (activeFilter === '내 팀') {
+      return activities.filter(a => a.type === 'report_submitted' || a.type === 'progress_update');
+    } else if (activeFilter === '내 활동') {
+      return activities.filter(a => a.actor === user?.username || a.actor === '나');
+    }
+    return activities; // 전체
+  };
+
+  const activities = filterActivities(allActivities);
 
   // 활동 타입별 그룹화
   const activityGroups = {
@@ -219,14 +232,15 @@ export default function RecentActivityFeed({ summary, user }) {
               flex: 1,
               padding: '8px 12px',
               border: 'none',
-              background: index === 0 ? '#3498db' : 'transparent',
-              color: index === 0 ? 'white' : '#636e72',
+              background: activeFilter === filter ? '#3498db' : 'transparent',
+              color: activeFilter === filter ? 'white' : '#636e72',
               borderRadius: '6px',
               fontSize: '12px',
               fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.2s ease'
-            }}>
+            }}
+            onClick={() => setActiveFilter(filter)}>
               {filter}
             </button>
           ))}
@@ -417,7 +431,7 @@ export default function RecentActivityFeed({ summary, user }) {
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
-          onClick={() => navigate('/activity')}
+          onClick={() => navigate('/activity-feed')}
           onMouseEnter={(e) => {
             e.target.style.background = '#3498db';
             e.target.style.color = 'white';

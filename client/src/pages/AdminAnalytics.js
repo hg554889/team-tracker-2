@@ -34,22 +34,11 @@ export default function AdminAnalytics() {
     );
   }
 
-  const mockData = {
-    userGrowth: [
-      { date: "2024-01-01", users: 150 },
-      { date: "2024-01-15", users: 175 },
-      { date: "2024-01-30", users: 200 },
-    ],
-    teamActivity: {
-      active: 45,
-      inactive: 12,
-      total: 57,
-    },
-    reportStats: {
-      submitted: 234,
-      pending: 18,
-      overdue: 5,
-    },
+  // API에서 받은 실제 데이터 사용, 없으면 기본값
+  const data = analytics || {
+    userGrowth: [],
+    teamActivity: { active: 0, inactive: 0, total: 0 },
+    reportStats: { submitted: 0, pending: 0, overdue: 0 },
   };
 
   return (
@@ -133,7 +122,7 @@ export default function AdminAnalytics() {
           <div
             style={{ fontSize: "28px", fontWeight: "700", color: "#3498db" }}
           >
-            {mockData.userGrowth[mockData.userGrowth.length - 1]?.users || 0}
+            {data.userGrowth[data.userGrowth.length - 1]?.users || 0}
           </div>
           <div style={{ fontSize: "12px", color: "#27ae60", marginTop: "4px" }}>
             ↗ +25 (지난 달 대비)
@@ -169,10 +158,10 @@ export default function AdminAnalytics() {
           <div
             style={{ fontSize: "28px", fontWeight: "700", color: "#2ecc71" }}
           >
-            {mockData.teamActivity.active}
+            {data.teamActivity.active}
           </div>
           <div style={{ fontSize: "12px", color: "#f39c12", marginTop: "4px" }}>
-            총 {mockData.teamActivity.total}팀 중
+            총 {data.teamActivity.total}팀 중
           </div>
         </div>
 
@@ -205,10 +194,10 @@ export default function AdminAnalytics() {
           <div
             style={{ fontSize: "28px", fontWeight: "700", color: "#9b59b6" }}
           >
-            {mockData.reportStats.submitted}
+            {data.reportStats.submitted}
           </div>
           <div style={{ fontSize: "12px", color: "#e74c3c", marginTop: "4px" }}>
-            {mockData.reportStats.overdue}개 지연
+            {data.reportStats.overdue}개 지연
           </div>
         </div>
       </div>
@@ -240,7 +229,7 @@ export default function AdminAnalytics() {
             padding: "20px",
           }}
         >
-          {mockData.userGrowth.map((item, index) => (
+          {data.userGrowth.map((item, index) => (
             <div key={index} style={{ textAlign: "center" }}>
               <div
                 style={{
@@ -307,10 +296,10 @@ export default function AdminAnalytics() {
                 height: "150px",
                 borderRadius: "50%",
                 background: `conic-gradient(#2ecc71 0deg ${
-                  (mockData.teamActivity.active / mockData.teamActivity.total) *
+                  (data.teamActivity.active / data.teamActivity.total) *
                   360
                 }deg, #e74c3c ${
-                  (mockData.teamActivity.active / mockData.teamActivity.total) *
+                  (data.teamActivity.active / data.teamActivity.total) *
                   360
                 }deg 360deg)`,
                 display: "flex",
@@ -339,8 +328,8 @@ export default function AdminAnalytics() {
                   }}
                 >
                   {Math.round(
-                    (mockData.teamActivity.active /
-                      mockData.teamActivity.total) *
+                    (data.teamActivity.active /
+                      data.teamActivity.total) *
                       100
                   )}
                   %
@@ -366,7 +355,7 @@ export default function AdminAnalytics() {
                 }}
               />
               <span style={{ fontSize: "14px", color: "#636e72" }}>
-                활성 ({mockData.teamActivity.active})
+                활성 ({data.teamActivity.active})
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -379,7 +368,7 @@ export default function AdminAnalytics() {
                 }}
               />
               <span style={{ fontSize: "14px", color: "#636e72" }}>
-                비활성 ({mockData.teamActivity.inactive})
+                비활성 ({data.teamActivity.inactive})
               </span>
             </div>
           </div>
@@ -420,7 +409,7 @@ export default function AdminAnalytics() {
                   color: "#2ecc71",
                 }}
               >
-                {mockData.reportStats.submitted}
+                {data.reportStats.submitted}
               </span>
             </div>
             <div
@@ -443,7 +432,7 @@ export default function AdminAnalytics() {
                   color: "#f39c12",
                 }}
               >
-                {mockData.reportStats.pending}
+                {data.reportStats.pending}
               </span>
             </div>
             <div
@@ -464,7 +453,7 @@ export default function AdminAnalytics() {
                   color: "#e74c3c",
                 }}
               >
-                {mockData.reportStats.overdue}
+                {data.reportStats.overdue}
               </span>
             </div>
           </div>

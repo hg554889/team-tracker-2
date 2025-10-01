@@ -107,16 +107,33 @@ export default function AIHelper({ summary, user }) {
 
   return (
     <div>
-      <h2 style={{ 
-        fontSize: '20px', 
-        color: '#2c3e50', 
-        marginBottom: '16px',
+      <div style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        justifyContent: 'space-between',
+        marginBottom: '16px'
       }}>
-        🤖 AI 도우미
-      </h2>
+        <h2 style={{
+          fontSize: '20px',
+          color: '#2c3e50',
+          margin: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          🤖 AI 도우미
+        </h2>
+        <span style={{
+          fontSize: '10px',
+          background: '#f39c1220',
+          color: '#f39c12',
+          padding: '4px 8px',
+          borderRadius: '12px',
+          fontWeight: '600'
+        }}>
+          데모 데이터
+        </span>
+      </div>
       
       <div style={{
         background: 'white',

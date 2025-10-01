@@ -20,25 +20,27 @@ export default function MyActivity({ summary }) {
   const completionRate = Math.round((completedTasks / Math.max(1, targetTasks)) * 100);
 
   // 실제 데이터 기반 주간 활동 데이터 생성
-  const weeklyData = generateWeeklyActivity(summary);
+  const dailyActivity = summary?.additionalStats?.dailyActivity || [];
 
-  // 주간 활동 데이터 생성 함수
-  function generateWeeklyActivity(summary) {
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
-    const today = new Date().getDay(); // 0=일요일, 1=월요일...
-    
-    return days.map((day, index) => {
-      const dayIndex = index + 1; // 월요일=1, 화요일=2...
-      const isPastDay = dayIndex < today;
-      const isToday = dayIndex === today;
-      
-      // 과거 날짜는 실적이 있고, 미래 날짜는 0
-      const completed = isPastDay ? Math.floor(Math.random() * 3) : isToday ? Math.floor(Math.random() * 2) : 0;
-      const target = index < 5 ? 2 : 0; // 평일만 목표 2개
-      
-      return { day, completed, target };
-    });
-  }
+  // dailyActivity를 요일별 맵으로 변환 (_id는 1-7: 1=일요일, 2=월요일...)
+  const dailyActivityMap = dailyActivity.reduce((acc, { _id, count }) => {
+    acc[_id] = count;
+    return acc;
+  }, {});
+
+  const days = ['월', '화', '수', '목', '금', '토', '일'];
+  const weeklyData = days.map((day, index) => {
+    // MongoDB $dayOfWeek: 1=일요일, 2=월요일, 3=화요일...
+    // 월요일(index 0) -> dayOfWeek 2
+    // 화요일(index 1) -> dayOfWeek 3
+    // ...
+    // 일요일(index 6) -> dayOfWeek 1
+    const dayOfWeek = index === 6 ? 1 : index + 2;
+    const completed = dailyActivityMap[dayOfWeek] || 0;
+    const target = index < 5 ? 2 : 0; // 평일만 목표 2개
+
+    return { day, completed, target };
+  });
 
   // 팀 순위 계산 (실제 데이터 기반)
   function getMyTeamRank() {

@@ -23,3 +23,10 @@ export function addComment(reportId, text) {
 export function deleteReport(id) {
   return client.delete(`/reports/${id}`);
 }
+
+export function sendBulkReminders(teamIds, weekOf) {
+  return client.post('/reports/send-bulk-reminders', {
+    teamIds,
+    weekOf
+  });
+}
