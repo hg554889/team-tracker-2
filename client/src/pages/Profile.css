@@ -72,10 +72,7 @@
   font-weight: 500;
 }
 
-.stat-value {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
+.profile-stats .stat-value { font-size: 1.2rem; }
 
 /* Profile Content */
 .profile-content {
